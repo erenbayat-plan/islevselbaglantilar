@@ -1,0 +1,6 @@
+{
+  "name": "İstanbul 2050 Afet Analizi",
+  "description": "İstanbul 2050 Çevre Düzeni Planı kapsamında Ulaşım, Lojistik ve Teknik Altyapı gruplarının Olası Afet ve İklim Krizi analiz matrisleri.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
