@@ -8,6 +8,7 @@ import {
   subscribeToCloudState,
   AppState 
 } from './syncService';
+import ReportTracker, { ReportStatusItem } from './components/ReportTracker';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -73,6 +74,7 @@ const WORK_KEY = 'work-status';
 const CUSTOM_KEY = 'custom-rows';
 const ROW_OVERRIDES_KEY = 'row-overrides';
 const ANALIZ_OVERRIDES_KEY = 'analiz-overrides';
+const REPORT_STATUS_KEY = 'report-status';
 
 type WorkStatus = {
   status: string;
@@ -87,6 +89,8 @@ const SUB_GROUPS: Record<string, string> = {
 };
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<'inventory' | 'report'>('inventory');
+
   const [workStatus, setWorkStatus] = useState<Record<string, WorkStatus>>(() => {
     try {
       const saved = localStorage.getItem(WORK_KEY);
@@ -114,6 +118,14 @@ export default function App() {
   const [analizOverrides, setAnalizOverrides] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(ANALIZ_OVERRIDES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [reportStatus, setReportStatus] = useState<Record<string, ReportStatusItem>>(() => {
+    try {
+      const saved = localStorage.getItem(REPORT_STATUS_KEY);
       return saved ? JSON.parse(saved) : {};
     } catch {
       return {};
@@ -159,6 +171,12 @@ export default function App() {
     } catch (e) { console.error(e); }
   }, [analizOverrides]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(reportStatus));
+    } catch (e) { console.error(e); }
+  }, [reportStatus]);
+
   // Global Real-time Multi-User Cloud & Multi-Tab Sync
   useEffect(() => {
     let isMounted = true;
@@ -189,6 +207,12 @@ export default function App() {
         const next = cloudData.analizOverrides || {};
         return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
       });
+      if (cloudData.reportStatus) {
+        setReportStatus(prev => {
+          const next = cloudData.reportStatus || {};
+          return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+        });
+      }
       setCloudSyncStatus('synced');
     };
 
@@ -199,11 +223,11 @@ export default function App() {
       if (tabState.customRows) setCustomRows(tabState.customRows);
       if (tabState.rowOverrides) setRowOverrides(tabState.rowOverrides);
       if (tabState.analizOverrides) setAnalizOverrides(tabState.analizOverrides);
+      if (tabState.reportStatus) setReportStatus(tabState.reportStatus);
       setCloudSyncStatus('synced');
     });
 
-    // True real-time cross-device/cross-user sync via Firestore's onSnapshot —
-    // fires the moment any client writes, no polling needed.
+    // True real-time cross-device/cross-user sync via Firestore's onSnapshot
     const unsubscribeCloud = subscribeToCloudState(
       applyCloudState,
       () => { if (isMounted) setCloudSyncStatus('connected'); }
@@ -220,12 +244,15 @@ export default function App() {
     nextWork: Record<string, WorkStatus>,
     nextCustom: Record<string, { id: number; name: string; v?: boolean }[]>,
     nextOverrides: Record<string, { n?: string; v?: boolean; deleted?: boolean }>,
-    nextAnaliz: Record<string, string>
+    nextAnaliz: Record<string, string>,
+    nextReport?: Record<string, ReportStatusItem>
   ) => {
     const newVersion = Date.now();
     localVersionRef.current = newVersion;
     isEditingRef.current = true;
     setCloudSyncStatus('saving');
+
+    const reportToSave = nextReport !== undefined ? nextReport : reportStatus;
 
     queueGlobalCloudPush(
       () => ({
@@ -233,11 +260,12 @@ export default function App() {
         customRows: nextCustom,
         rowOverrides: nextOverrides,
         analizOverrides: nextAnaliz,
+        reportStatus: reportToSave,
         lastUpdated: newVersion
       }),
       (status) => {
         setCloudSyncStatus(status === 'saving' ? 'saving' : 'synced');
-        // Release edit lock 1 second after push finishes
+        // Release edit lock after push finishes
         setTimeout(() => {
           isEditingRef.current = false;
         }, 1200);
@@ -315,13 +343,15 @@ export default function App() {
       setCustomRows({});
       setRowOverrides({});
       setAnalizOverrides({});
+      setReportStatus({});
       try {
         localStorage.removeItem(WORK_KEY);
         localStorage.removeItem(CUSTOM_KEY);
         localStorage.removeItem(ROW_OVERRIDES_KEY);
         localStorage.removeItem(ANALIZ_OVERRIDES_KEY);
+        localStorage.removeItem(REPORT_STATUS_KEY);
       } catch {}
-      triggerCloudSync({}, {}, {}, {});
+      triggerCloudSync({}, {}, {}, {}, {});
     }
   };
 
@@ -387,6 +417,13 @@ export default function App() {
     triggerCloudSync(workStatus, customRows, rowOverrides, updatedAnaliz);
   };
 
+  const handleUpdateReportStatus = (id: string, updates: Partial<ReportStatusItem>) => {
+    const current = reportStatus[id] || { status: 'not_started', progress: 0, author: '', targetPages: '', note: '' };
+    const updated = { ...reportStatus, [id]: { ...current, ...updates } };
+    setReportStatus(updated);
+    triggerCloudSync(workStatus, customRows, rowOverrides, analizOverrides, updated);
+  };
+
   const activeGroupData = DATA[activeGroup];
   const activeSec = activeGroupData.sections.find((s: any) => s.code === activeCode);
   const activeCnt = sectionCounts(activeGroup, activeSec.code);
@@ -398,151 +435,232 @@ export default function App() {
       <div className="toolbar">
         <div className="brandmark">AR</div>
         <div>
-          <h1>Olası Afet ve İklim Krizi Analizleri</h1>
-          <div className="sub">Plan 2050 — Ulaşım · Teknik Altyapı · Lojistik veri envanteri</div>
+          <h1>Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
+          <div className="sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
         </div>
+
+        {/* Top View Selector Tabs */}
+        <div className="view-tabs" style={{ marginLeft: '16px' }}>
+          <button
+            className={`view-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            <span className="tab-icon">📊</span>
+            <span>Veri Envanteri & Analizler</span>
+          </button>
+          <button
+            className={`view-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
+            onClick={() => setActiveTab('report')}
+          >
+            <span className="tab-icon">📑</span>
+            <span>Rapor Çatkısı & İlerleme</span>
+          </button>
+        </div>
+
         <div className="toolbar-spacer"></div>
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Veri veya bölüm ara…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div 
-          className="stat-pill" 
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-          title="Tıklayarak bulut verisini anında yeniden çekin"
-          onClick={async () => {
-            setCloudSyncStatus('saving');
-            const c = await fetchGlobalCloudState();
-            if (c) {
-              if (c.workStatus) setWorkStatus(c.workStatus);
-              if (c.customRows) setCustomRows(c.customRows);
-              if (c.rowOverrides) setRowOverrides(c.rowOverrides);
-              if (c.analizOverrides) setAnalizOverrides(c.analizOverrides);
-              setCloudSyncStatus('synced');
-            }
-          }}
-        >
-          <span style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            backgroundColor: cloudSyncStatus === 'saving' ? '#f59e0b' : '#10b981',
-            display: 'inline-block',
-            animation: cloudSyncStatus === 'saving' ? 'pulse 1s infinite' : 'none'
-          }}></span>
-          <span>{cloudSyncStatus === 'saving' ? 'Buluta Kaydediliyor…' : 'Canlı Bulut Senkronizasyonu'}</span>
-          <span style={{ fontSize: '11px', color: 'var(--muted)', marginLeft: '2px' }}>🔄</span>
-        </div>
-        <div className="stat-pill">İş Durumu: <b>{overallCounts.workDone}/{overallCounts.workTotal}</b></div>
-        <div className="stat-pill">Kaynak Veri: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
+
+        {activeTab === 'inventory' && (
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Veri veya bölüm ara…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <>
+            <div className="stat-pill">İş Durumu: <b>{overallCounts.workDone}/{overallCounts.workTotal}</b></div>
+            <div className="stat-pill">Kaynak Veri: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
+          </>
+        )}
+
         <button className="icon-btn" onClick={handleReset}>Verileri Temizle</button>
       </div>
 
-      <div className="shell">
-        {/* Sidebar */}
-        <nav className="sidebar">
-          {Object.keys(DATA).map(g => {
-            const grp = DATA[g];
-            const gd = grp.sections.reduce((acc: any, s: any) => {
-              const c = sectionCounts(g, s.code);
-              acc.d += c.done;
-              acc.t += c.total;
-              return acc;
-            }, { d: 0, t: 0 });
+      {activeTab === 'report' ? (
+        <ReportTracker 
+          activeGroup={activeGroup}
+          setActiveGroup={setActiveGroup}
+          reportStatus={reportStatus}
+          onUpdateReportStatus={handleUpdateReportStatus}
+        />
+      ) : (
+        <div className="shell">
+          {/* Sidebar */}
+          <nav className="sidebar">
+            {Object.keys(DATA).map(g => {
+              const grp = DATA[g];
+              const gd = grp.sections.reduce((acc: any, s: any) => {
+                const c = sectionCounts(g, s.code);
+                acc.d += c.done;
+                acc.t += c.total;
+                return acc;
+              }, { d: 0, t: 0 });
 
-            const isCollapsed = collapsedGroups[g];
+              const isCollapsed = collapsedGroups[g];
 
-            return (
-              <div key={g}>
-                <div className={`grp-head ${isCollapsed ? 'collapsed' : ''}`} onClick={() => setCollapsedGroups(prev => ({ ...prev, [g]: !isCollapsed }))}>
-                  <span className="name">{grp.label}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="gfrac">{gd.d}/{gd.t}</span>
-                    <span className="car">&#x25be;</span>
-                  </span>
+              return (
+                <div key={g}>
+                  <div className={`grp-head ${isCollapsed ? 'collapsed' : ''}`} onClick={() => setCollapsedGroups(prev => ({ ...prev, [g]: !isCollapsed }))}>
+                    <span className="name">{grp.label}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="gfrac">{gd.d}/{gd.t}</span>
+                      <span className="car">&#x25be;</span>
+                    </span>
+                  </div>
+                  <div className={`sec-list ${isCollapsed ? 'hidden' : ''}`}>
+                    {['4', '5', '6'].map(prefix => {
+                      const sections = grp.sections.filter((s: any) => s.code.startsWith(prefix));
+                      const visibleSections = sections.filter((s: any) => !searchTerm || sectionMatches(g, s, searchTerm));
+                      
+                      if (visibleSections.length === 0) return null;
+
+                      return (
+                        <div key={prefix} className="sub-grp-wrap">
+                          <div className="sub-grp-title">{SUB_GROUPS[prefix]}</div>
+                          {visibleSections.map((s: any) => {
+                            const cnt = sectionCounts(g, s.code);
+                            const isActive = g === activeGroup && s.code === activeCode;
+                            
+                            let swCls = 'empty';
+                            if (cnt.total > 0) {
+                              if (cnt.done === 0) swCls = '';
+                              else if (cnt.done < cnt.total) swCls = 'partial';
+                              else swCls = 'full';
+                            }
+
+                            return (
+                              <button
+                                key={s.code}
+                                className={`nav-item ${isActive ? 'active' : ''}`}
+                                onClick={() => { setActiveGroup(g); setActiveCode(s.code); }}
+                              >
+                                <span className="code">{s.code}</span>
+                                <span className="title">{s.title}</span>
+                                {cnt.gaps > 0 && <span className="gap" title={`${cnt.gaps} eksik veri`}></span>}
+                                <span className={`swatch ${swCls}`}></span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className={`sec-list ${isCollapsed ? 'hidden' : ''}`}>
-                  {['4', '5', '6'].map(prefix => {
-                    const sections = grp.sections.filter((s: any) => s.code.startsWith(prefix));
-                    const visibleSections = sections.filter((s: any) => !searchTerm || sectionMatches(g, s, searchTerm));
-                    
-                    if (visibleSections.length === 0) return null;
+              );
+            })}
+          </nav>
 
-                    return (
-                      <div key={prefix} className="sub-grp-wrap">
-                        <div className="sub-grp-title">{SUB_GROUPS[prefix]}</div>
-                        {visibleSections.map((s: any) => {
-                          const cnt = sectionCounts(g, s.code);
-                          const isActive = g === activeGroup && s.code === activeCode;
-                          
-                          let swCls = 'empty';
-                          if (cnt.total > 0) {
-                            if (cnt.done === 0) swCls = '';
-                            else if (cnt.done < cnt.total) swCls = 'partial';
-                            else swCls = 'full';
-                          }
-
-                          return (
-                            <button
-                              key={s.code}
-                              className={`nav-item ${isActive ? 'active' : ''}`}
-                              onClick={() => { setActiveGroup(g); setActiveCode(s.code); }}
-                            >
-                              <span className="code">{s.code}</span>
-                              <span className="title">{s.title}</span>
-                              {cnt.gaps > 0 && <span className="gap" title={`${cnt.gaps} eksik veri`}></span>}
-                              <span className={`swatch ${swCls}`}></span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Content */}
-        <main className="content">
-          <div className="crumb">{activeGroupData.label} / Olası Afet ve İklim Krizi Riskleri</div>
-          <div className="sec-title">
-            <span className="code-badge">{activeSec.code}</span>
-            <h2>{activeSec.title}</h2>
-          </div>
-          
-          <div className="sec-progress">
-            <div className="track">
-              <span style={{ width: `${pctDone}%`, background: 'var(--st-done)' }}></span>
+          {/* Content */}
+          <main className="content">
+            <div className="crumb">{activeGroupData.label} / Olası Afet ve İklim Krizi Riskleri</div>
+            <div className="sec-title">
+              <span className="code-badge">{activeSec.code}</span>
+              <h2>{activeSec.title}</h2>
             </div>
-            <span className="fig">
-              {activeCnt.done} / {activeCnt.total} İş Durumu tamamlandı
-              {activeCnt.gaps > 0 ? ` · ${activeCnt.gaps} Kaynak Veri eksik` : ''}
-            </span>
-          </div>
-
-          <div className="filter-row">
-            <label>
-              <input type="checkbox" checked={onlyGaps} onChange={e => setOnlyGaps(e.target.checked)} /> 
-              Sadece eksik Kaynak Veriyi (Yok) göster
-            </label>
-          </div>
-
-          {activeSec.climate ? (
-            <>
-              <div className="empty-panel">
-                <p className="etext">{activeSec.sartname}</p>
-                <div className="hint">Bu bölüm için şartnamede madde tanımlı, ancak analiz türü ve veri envanteri henüz oluşturulmamış — mekânsal analize başlamadan önce aşağıya gerekli veri kalemlerini ekleyip durumlarını takip edebilirsiniz.</div>
+            
+            <div className="sec-progress">
+              <div className="track">
+                <span style={{ width: `${pctDone}%`, background: 'var(--st-done)' }}></span>
               </div>
+              <span className="fig">
+                {activeCnt.done} / {activeCnt.total} İş Durumu tamamlandı
+                {activeCnt.gaps > 0 ? ` · ${activeCnt.gaps} Kaynak Veri eksik` : ''}
+              </span>
+            </div>
+
+            <div className="filter-row">
+              <label>
+                <input type="checkbox" checked={onlyGaps} onChange={e => setOnlyGaps(e.target.checked)} /> 
+                Sadece eksik Kaynak Veriyi (Yok) göster
+              </label>
+            </div>
+
+            {activeSec.climate ? (
+              <>
+                <div className="empty-panel">
+                  <p className="etext">{activeSec.sartname}</p>
+                  <div className="hint">Bu bölüm için şartnamede madde tanımlı, ancak analiz türü ve veri envanteri henüz oluşturulmamış — mekânsal analize başlamadan önce aşağıya gerekli veri kalemlerini ekleyip durumlarını takip edebilirsiniz.</div>
+                </div>
+                <div className="entry-card">
+                  <div className="ehead"><div className="elabel">Veri Envanteri</div></div>
+                  <VeriTable 
+                    rows={sectionAllRows(activeGroup, activeSec.code)} 
+                    onlyGaps={onlyGaps}
+                    getWork={getWork}
+                    handleUpdateWork={handleUpdateWork}
+                    visibleNotes={visibleNotes}
+                    setVisibleNotes={setVisibleNotes}
+                    handleUpdateRow={handleUpdateRow}
+                    handleDeleteRow={handleDeleteRow}
+                  />
+                  <div className="add-row" style={{ padding: '0 18px 16px' }}>
+                    <input type="text" placeholder="Yeni veri kalemi adı…" value={newRowName} onChange={e => setNewRowName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCustomRow(activeGroup, activeSec.code)} />
+                    <button onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}>Ekle</button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              activeSec.entries.map((e: any, eIdx: number) => {
+                const rows = e.veri.map((v: any, vIdx: number) => {
+                  const id = rowId(activeGroup, activeSec.code, eIdx, vIdx);
+                  const override = rowOverrides[id];
+                  return {
+                    id,
+                    n: override?.n !== undefined ? override.n : v.n,
+                    v: override?.v !== undefined ? override.v : v.v,
+                    custom: false,
+                    deleted: override?.deleted
+                  };
+                }).filter((r: any) => !r.deleted);
+
+                const entryId = `${activeGroup}|${activeSec.code}|${eIdx}`;
+                const currentAnaliz = analizOverrides[entryId] !== undefined ? analizOverrides[entryId] : (e.analiz ? toTitleCase(e.analiz) : '');
+                
+                return (
+                  <div key={eIdx} className="entry-card">
+                    <div className="ehead">
+                      <div className="elabel">Şartname Karşılığı</div>
+                      <p className="etext">{e.sartname}</p>
+                      {(e.analiz || currentAnaliz) && (
+                        <div className="analiz-block">
+                          <div className="elabel">Analiz Adı</div>
+                          <AnalizEditInput 
+                            initialValue={currentAnaliz}
+                            onSave={(val) => handleSaveAnaliz(entryId, val)}
+                            placeholder="Analiz adı girin..."
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <VeriTable 
+                      rows={rows} 
+                      onlyGaps={onlyGaps}
+                      getWork={getWork}
+                      handleUpdateWork={handleUpdateWork}
+                      visibleNotes={visibleNotes}
+                      setVisibleNotes={setVisibleNotes}
+                      handleUpdateRow={handleUpdateRow}
+                      handleDeleteRow={handleDeleteRow}
+                    />
+                  </div>
+                );
+              })
+            )}
+
+            {!activeSec.climate && (
               <div className="entry-card">
-                <div className="ehead"><div className="elabel">Veri Envanteri</div></div>
+                <div className="ehead">
+                  <div className="elabel">Eklenen Veri Kalemleri</div>
+                  <p className="etext" style={{ marginBottom: 0, fontSize: '11.5px', color: 'var(--muted)' }}>Bu bölüme özel olarak oluşturduğunuz ek veri satırları</p>
+                </div>
                 <VeriTable 
-                  rows={sectionAllRows(activeGroup, activeSec.code)} 
+                  rows={(customRows[customKey(activeGroup, activeSec.code)] || []).map(c => ({
+                    id: `custom|${activeGroup}|${activeSec.code}|${c.id}`, n: c.name, v: c.v !== undefined ? c.v : false, custom: true, customId: c.id
+                  }))} 
                   onlyGaps={onlyGaps}
                   getWork={getWork}
                   handleUpdateWork={handleUpdateWork}
@@ -556,95 +674,18 @@ export default function App() {
                   <button onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}>Ekle</button>
                 </div>
               </div>
-            </>
-          ) : (
-            activeSec.entries.map((e: any, eIdx: number) => {
-              const rows = e.veri.map((v: any, vIdx: number) => {
-                const id = rowId(activeGroup, activeSec.code, eIdx, vIdx);
-                const override = rowOverrides[id];
-                return {
-                  id,
-                  n: override?.n !== undefined ? override.n : v.n,
-                  v: override?.v !== undefined ? override.v : v.v,
-                  custom: false,
-                  deleted: override?.deleted
-                };
-              }).filter((r: any) => !r.deleted);
+            )}
 
-              // Also add custom rows for this specific section block? 
-              // Actually custom rows are block-level (per code). To keep them under a specific entry is tricky, 
-              // we currently append them at the end. Since `climate: false` renders entries separately, we can render 
-              // custom rows after the predefined entries, or just inside the first one. 
-              // Let's render the custom rows under a "Eklenen Veriler" block if any exist, or at the end.
-              const entryId = `${activeGroup}|${activeSec.code}|${eIdx}`;
-              const currentAnaliz = analizOverrides[entryId] !== undefined ? analizOverrides[entryId] : (e.analiz ? toTitleCase(e.analiz) : '');
-              
-              return (
-                <div key={eIdx} className="entry-card">
-                  <div className="ehead">
-                    <div className="elabel">Şartname Karşılığı</div>
-                    <p className="etext">{e.sartname}</p>
-                    {(e.analiz || currentAnaliz) && (
-                      <div className="analiz-block">
-                        <div className="elabel">Analiz Adı</div>
-                        <AnalizEditInput 
-                          initialValue={currentAnaliz}
-                          onSave={(val) => handleSaveAnaliz(entryId, val)}
-                          placeholder="Analiz adı girin..."
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <VeriTable 
-                    rows={rows} 
-                    onlyGaps={onlyGaps}
-                    getWork={getWork}
-                    handleUpdateWork={handleUpdateWork}
-                    visibleNotes={visibleNotes}
-                    setVisibleNotes={setVisibleNotes}
-                    handleUpdateRow={handleUpdateRow}
-                    handleDeleteRow={handleDeleteRow}
-                  />
-                  {/* We can add an inline 'add row' here if we bind custom rows to entries, but currently they are bound to the section code. */}
-                </div>
-              );
-            })
-          )}
-
-          {!activeSec.climate && (
-            <div className="entry-card">
-              <div className="ehead">
-                <div className="elabel">Eklenen Veri Kalemleri</div>
-                <p className="etext" style={{ marginBottom: 0, fontSize: '11.5px', color: 'var(--muted)' }}>Bu bölüme özel olarak oluşturduğunuz ek veri satırları</p>
-              </div>
-              <VeriTable 
-                rows={(customRows[customKey(activeGroup, activeSec.code)] || []).map(c => ({
-                  id: `custom|${activeGroup}|${activeSec.code}|${c.id}`, n: c.name, v: c.v !== undefined ? c.v : false, custom: true, customId: c.id
-                }))} 
-                onlyGaps={onlyGaps}
-                getWork={getWork}
-                handleUpdateWork={handleUpdateWork}
-                visibleNotes={visibleNotes}
-                setVisibleNotes={setVisibleNotes}
-                handleUpdateRow={handleUpdateRow}
-                handleDeleteRow={handleDeleteRow}
-              />
-              <div className="add-row" style={{ padding: '0 18px 16px' }}>
-                <input type="text" placeholder="Yeni veri kalemi adı…" value={newRowName} onChange={e => setNewRowName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCustomRow(activeGroup, activeSec.code)} />
-                <button onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}>Ekle</button>
-              </div>
+            <div className="legend">
+              <div className="li"><span className="sw" style={{ background: 'var(--ok)' }}></span>Kaynakta Var</div>
+              <div className="li"><span className="sw" style={{ background: 'var(--warn)' }}></span>Kaynakta Yok / Eksik</div>
+              <div className="li"><span className="sw" style={{ background: 'var(--st-progress)' }}></span>Veri Toplanıyor</div>
+              <div className="li"><span className="sw" style={{ background: 'var(--st-gis)' }}></span>ArcGIS’te Analiz</div>
+              <div className="li"><span className="sw" style={{ background: 'var(--st-done)' }}></span>Tamamlandı</div>
             </div>
-          )}
-
-          <div className="legend">
-            <div className="li"><span className="sw" style={{ background: 'var(--ok)' }}></span>Kaynakta Var</div>
-            <div className="li"><span className="sw" style={{ background: 'var(--warn)' }}></span>Kaynakta Yok / Eksik</div>
-            <div className="li"><span className="sw" style={{ background: 'var(--st-progress)' }}></span>Veri Toplanıyor</div>
-            <div className="li"><span className="sw" style={{ background: 'var(--st-gis)' }}></span>ArcGIS’te Analiz</div>
-            <div className="li"><span className="sw" style={{ background: 'var(--st-done)' }}></span>Tamamlandı</div>
-          </div>
-        </main>
-      </div>
+          </main>
+        </div>
+      )}
     </div>
   );
 }

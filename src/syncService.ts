@@ -9,6 +9,7 @@ export interface AppState {
   customRows: Record<string, any>;
   rowOverrides: Record<string, any>;
   analizOverrides: Record<string, any>;
+  reportStatus?: Record<string, any>;
   lastUpdated: number;
 }
 
@@ -55,6 +56,7 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
         customRows: data.customRows || {},
         rowOverrides: data.rowOverrides || {},
         analizOverrides: data.analizOverrides || {},
+        reportStatus: data.reportStatus || {},
         lastUpdated: Number(data.lastUpdated) || 0
       };
     }
@@ -70,6 +72,7 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
     customRows: state.customRows || {},
     rowOverrides: state.rowOverrides || {},
     analizOverrides: state.analizOverrides || {},
+    reportStatus: state.reportStatus || {},
     lastUpdated: state.lastUpdated || Date.now()
   };
 
@@ -115,6 +118,7 @@ export function subscribeToCloudState(
           customRows: data.customRows || {},
           rowOverrides: data.rowOverrides || {},
           analizOverrides: data.analizOverrides || {},
+          reportStatus: data.reportStatus || {},
           lastUpdated: Number(data.lastUpdated) || 0
         });
       }
