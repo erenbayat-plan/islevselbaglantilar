@@ -306,18 +306,25 @@ export default function ReportTracker({
                         return (
                           <React.Fragment key={sub.code}>
                             <tr>
-                              <td className="sec-code">{sub.code}</td>
+                              <td className="sec-code">
+                                <div className="report-mobile-card-top">
+                                  <span className="sec-code-badge" style={{ fontWeight: 700, color: 'var(--brand)' }}>{sub.code}</span>
+                                  <div className="report-mobile-actions-top" style={{ display: 'none' }}></div>
+                                </div>
+                              </td>
                               <td className="sec-title">{sub.title}</td>
                               <td>
-                                <select
-                                  className={`report-status-select st-${st.status}`}
-                                  value={st.status}
-                                  onChange={e => onUpdateReportStatus(id, { status: e.target.value as any })}
-                                >
-                                  {Object.keys(REPORT_STATUS_LABEL).map(k => (
-                                    <option key={k} value={k}>{REPORT_STATUS_LABEL[k]}</option>
-                                  ))}
-                                </select>
+                                <div className="report-mobile-card-actions">
+                                  <select
+                                    className={`report-status-select st-${st.status}`}
+                                    value={st.status}
+                                    onChange={e => onUpdateReportStatus(id, { status: e.target.value as any })}
+                                  >
+                                    {Object.keys(REPORT_STATUS_LABEL).map(k => (
+                                      <option key={k} value={k}>{REPORT_STATUS_LABEL[k]}</option>
+                                    ))}
+                                  </select>
+                                </div>
                               </td>
                               <td>
                                 <div className="progress-pill-group">
@@ -338,13 +345,15 @@ export default function ReportTracker({
                                 </div>
                               </td>
                               <td>
-                                <input
-                                  type="text"
-                                  className="author-input"
-                                  placeholder="Yazar adı…"
-                                  value={st.author || ''}
-                                  onChange={e => onUpdateReportStatus(id, { author: e.target.value })}
-                                />
+                                <div className="report-mobile-fields">
+                                  <input
+                                    type="text"
+                                    className="author-input"
+                                    placeholder="Yazar adı…"
+                                    value={st.author || ''}
+                                    onChange={e => onUpdateReportStatus(id, { author: e.target.value })}
+                                  />
+                                </div>
                               </td>
                               <td>
                                 <input

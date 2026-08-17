@@ -90,6 +90,7 @@ const SUB_GROUPS: Record<string, string> = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'inventory' | 'report'>('inventory');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [workStatus, setWorkStatus] = useState<Record<string, WorkStatus>>(() => {
     try {
@@ -433,14 +434,16 @@ export default function App() {
     <div className={`shell-container theme-${activeGroup}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
       <div className="toolbar">
-        <div className="brandmark">AR</div>
-        <div>
-          <h1>Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
-          <div className="sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
+        <div className="toolbar-brand-section" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="brandmark">AR</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1>Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
+            <div className="sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
+          </div>
         </div>
 
         {/* Top View Selector Tabs */}
-        <div className="view-tabs" style={{ marginLeft: '16px' }}>
+        <div className="view-tabs">
           <button
             className={`view-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
             onClick={() => setActiveTab('inventory')}
@@ -471,10 +474,10 @@ export default function App() {
         )}
 
         {activeTab === 'inventory' && (
-          <>
+          <div className="toolbar-stats-row">
             <div className="stat-pill">İş Durumu: <b>{overallCounts.workDone}/{overallCounts.workTotal}</b></div>
-            <div className="stat-pill">Kaynak Veri: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
-          </>
+            <div className="stat-pill">Kaynak: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
+          </div>
         )}
 
         <button className="icon-btn" onClick={handleReset}>Verileri Temizle</button>
@@ -489,8 +492,19 @@ export default function App() {
         />
       ) : (
         <div className="shell">
+          {/* Mobile Sidebar Selector Bar */}
+          <div className="mobile-section-picker" style={{ display: 'none' }}>
+            <button 
+              className="mobile-nav-toggle-btn"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+            >
+              <span>📂 {activeGroupData.label} / {activeSec.code} - {activeSec.title}</span>
+              <span>{mobileMenuOpen ? '▲ Kapat' : '▼ Bölüm Seç'}</span>
+            </button>
+          </div>
+
           {/* Sidebar */}
-          <nav className="sidebar">
+          <nav className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
             {Object.keys(DATA).map(g => {
               const grp = DATA[g];
               const gd = grp.sections.reduce((acc: any, s: any) => {
@@ -536,7 +550,11 @@ export default function App() {
                               <button
                                 key={s.code}
                                 className={`nav-item ${isActive ? 'active' : ''}`}
-                                onClick={() => { setActiveGroup(g); setActiveCode(s.code); }}
+                                onClick={() => { 
+                                  setActiveGroup(g); 
+                                  setActiveCode(s.code);
+                                  setMobileMenuOpen(false); 
+                                }}
                               >
                                 <span className="code">{s.code}</span>
                                 <span className="title">{s.title}</span>
@@ -723,26 +741,32 @@ function VeriTable({
             <React.Fragment key={r.id}>
               <tr className={rowCls}>
                 <td className="idx">{i + 1}</td>
-                <td className="vname" style={{ paddingRight: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <input 
-                      type="text"
-                      className="edit-input"
-                      value={r.n}
-                      onChange={e => handleUpdateRow(r.id, { n: e.target.value })}
-                      placeholder="Veri adı girin..."
-                    />
-                    {r.custom && <span className="mono" style={{ color: 'var(--muted)', fontSize: '9.5px', marginLeft: '4px' }}>(eklendi)</span>}
+                <td className="vname">
+                  <div className="veri-mobile-header">
+                    <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                      <input 
+                        type="text"
+                        className="edit-input"
+                        value={r.n}
+                        onChange={e => handleUpdateRow(r.id, { n: e.target.value })}
+                        placeholder="Veri adı girin..."
+                      />
+                      {r.custom && <span className="mono" style={{ color: 'var(--muted)', fontSize: '9.5px', marginLeft: '4px', flexShrink: 0 }}>(eklendi)</span>}
+                    </div>
                   </div>
                 </td>
                 <td className="kaynak">
-                  <button 
-                    className={`pill ${r.v ? 'var' : 'yok'}`}
-                    onClick={() => handleUpdateRow(r.id, { v: !r.v })}
-                    style={{ cursor: 'pointer', outline: 'none' }}
-                  >
-                    {r.v ? 'VAR' : 'YOK'}
-                  </button>
+                  <div className="veri-mobile-controls">
+                    <div className="veri-mobile-controls-left">
+                      <button 
+                        className={`pill ${r.v ? 'var' : 'yok'}`}
+                        onClick={() => handleUpdateRow(r.id, { v: !r.v })}
+                        style={{ cursor: 'pointer', outline: 'none' }}
+                      >
+                        {r.v ? 'VAR' : 'YOK'}
+                      </button>
+                    </div>
+                  </div>
                 </td>
                 <td className="durum">
                   <select 
