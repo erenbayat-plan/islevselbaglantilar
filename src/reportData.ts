@@ -78,8 +78,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA ULAŞIM ALTYAPISINA YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Ulaşım Planlamasına Yönelik Küresel Yaklaşımlar' },
-          { code: '7.2', title: 'Afet ve İklim Dayanıklı Ulaşım Sistemlerinin Uluslararası Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Ulaşım Sistemlerinin Uluslararası İyi Uygulama Örnekleri' }
         ]
       },
       {
@@ -157,8 +156,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA TEKNİK ALTYAPI SİSTEMLERİ YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Altyapı Planlamasına Yönelik Küresel Yaklaşımlar' },
-          { code: '7.2', title: 'Afet ve İklim Dayanıklı Altyapı Planlamasının Uluslararası Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Altyapı Planlamasının Uluslararası İyi Uygulama Örnekleri' }
         ]
       },
       {
@@ -233,8 +231,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA LOJİSTİK SİSTEMLERİNE YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Lojistik Planlamasına Yönelik Küresel Yaklaşımlar' },
-          { code: '7.2', title: 'Afet ve İklim Dayanıklı Lojistik Planlamasının Uluslararası Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Lojistik Planlamasının Uluslararası İyi Uygulama Örnekleri' }
         ]
       },
       {
