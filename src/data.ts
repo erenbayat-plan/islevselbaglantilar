@@ -42,18 +42,6 @@ export const DATA: Record<string, any> = {
         {n:'Ulaşım odaklarına ait Q500 su altında kalma ve işlev kaybı verileri', v:false}
       ]}
     ]},
-    {code:'4.3', title:'Fırtına ve Aşırı Hava Olayları', entries:[
-      {sartname:'Fırtına ve aşırı hava olaylarının karayolu ulaşım ağı, ulaşım odakları ve toplu taşıma sistemi üzerindeki potansiyel etkilerinin değerlendirilmesi', analiz:'Fırtına maruziyeti ve ulaşım hizmeti kesinti analizi', veri:[
-        {n:'Fırtına ve şiddetli rüzgâr tehlike haritası', v:false},
-        {n:'Aşırı hava olayı ve ulaşım kapanma kayıtları', v:false},
-        {n:'Ağaç devrilmesi ve uçan cisim kaynaklı tehlike alanları', v:false},
-        {n:'Karayolu ulaşım ağı (SoV_RoadNetwork)', v:true},
-        {n:'Ulaşım odakları envanteri', v:false},
-        {n:'Otobüs güzergâhları ve raylı sistem ağı (SoV_BusNetwork, SoV_RailwayNetwork)', v:true},
-        {n:'Köprü envanteri ve açıkta kalan kritik ulaşım yapıları', v:true},
-        {n:'Denizyolu ve havayolu işletim kesintisi kayıtları', v:false}
-      ]}
-    ]},
     {code:'5.1', title:'Yangın', entries:[
       {sartname:'Yangının karayolu ulaşım ağı, ulaşım odakları ve toplu taşıma sistemi üzerindeki potansiyel etkilerinin değerlendirilmesi', analiz:'Yangın maruziyeti ve ulaşım sistemi işlev kaybı analizi', veri:[
         {n:'Normalize edilmiş yangın tehlikesi katmanı (Yangin_Tehlike_Normalizasyon)', v:true},
@@ -179,17 +167,6 @@ export const DATA: Record<string, any> = {
         {n:'Havayolu ve denizyolu taşkın kaynaklı kapanma/hizmet kesintisi verileri', v:false},
         {n:'Lojistik odaklara ve terminallere erişim bağlantıları', v:false},
         {n:'Tesis bazında kapasite, yük akımı ve alternatif erişim verileri', v:false}
-      ]}
-    ]},
-    {code:'4.3', title:'Fırtına ve Aşırı Hava Olayları', entries:[
-      {sartname:'Fırtına ve aşırı hava olaylarının ulaşım ağı, lojistik odakları, terminaller ve operasyonel süreklilik üzerindeki potansiyel etkilerinin değerlendirilmesi', analiz:'Fırtına maruziyeti ve lojistik operasyon kesintisi analizi', veri:[
-        {n:'Fırtına ve şiddetli rüzgâr tehlike haritası', v:false},
-        {n:'Karayolu ulaşım ağı (SoV_RoadNetwork)', v:true},
-        {n:'Raylı sistem/demiryolu ağı (SoV_RailwayNetwork)', v:true},
-        {n:'Liman, hava kargo, lojistik odak ve açık depolama alanları envanteri', v:false},
-        {n:'Lojistik terminaller envanteri', v:false},
-        {n:'Lojistik operasyon ve hizmet kesintisi kayıtları', v:false},
-        {n:'Yük türü, kapasite ve alternatif taşıma modu verileri', v:false}
       ]}
     ]},
     {code:'5.1', title:'Yangın', entries:[

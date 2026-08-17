@@ -479,8 +479,6 @@ export default function App() {
             <div className="stat-pill">Kaynak: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
           </div>
         )}
-
-        <button className="icon-btn" onClick={handleReset}>Verileri Temizle</button>
       </div>
 
       {activeTab === 'report' ? (
