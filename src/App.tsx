@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Database, FileText, Search, Activity, CheckCircle2, Layers } from 'lucide-react';
 import { DATA, STATUS_LABEL } from './data';
 import { 
   fetchGlobalCloudState, 
@@ -433,29 +434,39 @@ export default function App() {
   return (
     <div className={`shell-container theme-${activeGroup}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
-      <div className="toolbar">
-        <div className="toolbar-brand-section" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="brandmark">AR</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1>Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
-            <div className="sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
+      <header className="toolbar">
+        <div className="toolbar-brand-section">
+          <div className="brandmark">
+            <span className="brand-dot"></span>
+            <span className="brand-text">P2050</span>
+          </div>
+          <div className="toolbar-headings">
+            <div className="toolbar-title-row">
+              <h1 className="toolbar-title">Afet, İklim Krizi & Rapor Portalı</h1>
+              <span className="toolbar-env-tag">İSTANBUL 2050</span>
+            </div>
+            <div className="toolbar-sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri & Çatkı</div>
           </div>
         </div>
 
-        {/* Top View Selector Tabs */}
-        <div className="view-tabs">
+        {/* Top View Selector Segmented Tabs */}
+        <div className="view-tabs" role="tablist">
           <button
+            role="tab"
+            aria-selected={activeTab === 'inventory'}
             className={`view-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
             onClick={() => setActiveTab('inventory')}
           >
-            <span className="tab-icon">📊</span>
+            <Layers size={13.5} className="tab-icon" />
             <span>Veri Envanteri & Analizler</span>
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === 'report'}
             className={`view-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
             onClick={() => setActiveTab('report')}
           >
-            <span className="tab-icon">📑</span>
+            <FileText size={13.5} className="tab-icon" />
             <span>Rapor Çatkısı & İlerleme</span>
           </button>
         </div>
@@ -463,23 +474,52 @@ export default function App() {
         <div className="toolbar-spacer"></div>
 
         {activeTab === 'inventory' && (
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Veri veya bölüm ara…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        )}
+          <div className="toolbar-actions-group">
+            <div className="search-box">
+              <Search size={13} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Veri veya bölüm ara…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  className="search-clear-btn" 
+                  onClick={() => setSearchTerm('')}
+                  title="Aramayı temizle"
+                >
+                  ×
+                </button>
+              )}
+            </div>
 
-        {activeTab === 'inventory' && (
-          <div className="toolbar-stats-row">
-            <div className="stat-pill">İş Durumu: <b>{overallCounts.workDone}/{overallCounts.workTotal}</b></div>
-            <div className="stat-pill">Kaynak: <b>{overallCounts.srcVar} Var</b> · {overallCounts.srcYok} Yok</div>
+            <div className="toolbar-stats-row">
+              <div className="stat-chip" title="Tamamlanan iş durumu">
+                <span className="stat-chip-label">İş Durumu</span>
+                <span className="stat-chip-val">
+                  <b className="val-accent">{overallCounts.workDone}</b>
+                  <span className="val-divider">/</span>
+                  <span className="val-total">{overallCounts.workTotal}</span>
+                </span>
+              </div>
+              <div className="stat-chip" title="Kaynak verisi varlık durumu">
+                <span className="stat-chip-label">Kaynak</span>
+                <span className="stat-chip-indicators">
+                  <span className="src-indicator src-var">
+                    <span className="src-dot"></span>
+                    <b>{overallCounts.srcVar}</b> Var
+                  </span>
+                  <span className="src-indicator src-yok">
+                    <span className="src-dot"></span>
+                    <b>{overallCounts.srcYok}</b> Yok
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
         )}
-      </div>
+      </header>
 
       {activeTab === 'report' ? (
         <ReportTracker 
