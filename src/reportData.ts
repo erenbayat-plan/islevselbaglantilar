@@ -34,10 +34,11 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         title: 'STRATEJİ, PLANLAMA VE YASAL ÇERÇEVE',
         subSections: [
           { code: '2.1', title: 'İlgili Uluslararası Anlaşma ve Sözleşmeler' },
-          { code: '2.2', title: 'Üst Strateji ve Politika Belgeleri' },
-          { code: '2.3', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' },
+          { code: '2.2', title: 'Üst Ölçekli Ulusal ve Bölgesel Strateji ve Politika Belgeleri' },
+          { code: '2.3', title: 'İstanbul İli Stratejik Planlar ve Belgeler' },
           { code: '2.4', title: 'İlgili Mekânsal Planlar' },
-          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' }
+          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' },
+          { code: '2.6', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' }
         ]
       },
       {
@@ -78,7 +79,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA ULAŞIM ALTYAPISINA YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Ulaşım Sistemlerinin Uluslararası İyi Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Ulaşım Sistemlerinin Uluslararası Uygulama Örnekleri' }
         ]
       },
       {
@@ -110,10 +111,11 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         title: 'STRATEJİ, PLANLAMA VE YASAL ÇERÇEVE',
         subSections: [
           { code: '2.1', title: 'İlgili Uluslararası Anlaşma ve Sözleşmeler' },
-          { code: '2.2', title: 'Üst Strateji ve Politika Belgeleri' },
-          { code: '2.3', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' },
+          { code: '2.2', title: 'Üst Ölçekli Ulusal ve Bölgesel Strateji ve Politika Belgeleri' },
+          { code: '2.3', title: 'İstanbul İli Stratejik Planlar ve Belgeler' },
           { code: '2.4', title: 'İlgili Mekânsal Planlar' },
-          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' }
+          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' },
+          { code: '2.6', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' }
         ]
       },
       {
@@ -156,7 +158,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA TEKNİK ALTYAPI SİSTEMLERİ YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Altyapı Planlamasının Uluslararası İyi Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Altyapı Planlamasının Uluslararası Uygulama Örnekleri' }
         ]
       },
       {
@@ -188,10 +190,11 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         title: 'STRATEJİ, PLANLAMA VE YASAL ÇERÇEVE',
         subSections: [
           { code: '2.1', title: 'İlgili Uluslararası Anlaşma ve Sözleşmeler' },
-          { code: '2.2', title: 'Üst Strateji ve Politika Belgeleri' },
-          { code: '2.3', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' },
+          { code: '2.2', title: 'Üst Ölçekli Ulusal ve Bölgesel Strateji ve Politika Belgeleri' },
+          { code: '2.3', title: 'İstanbul İli Stratejik Planlar ve Belgeler' },
           { code: '2.4', title: 'İlgili Mekânsal Planlar' },
-          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' }
+          { code: '2.5', title: 'Yasal-Yönetsel Çerçeve' },
+          { code: '2.6', title: 'Türkiye ve İstanbul’da Tarihsel Süreçte Afetler ve İklim Krizleri' }
         ]
       },
       {
@@ -231,7 +234,7 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
         num: '7',
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA LOJİSTİK SİSTEMLERİNE YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
-          { code: '7.1', title: 'Afet ve İklim Dayanıklı Lojistik Planlamasının Uluslararası İyi Uygulama Örnekleri' }
+          { code: '7.1', title: 'Afet ve İklim Dayanıklı Lojistik Planlamasının Uluslararası Uygulama Örnekleri' }
         ]
       },
       {
@@ -247,3 +250,4 @@ export const REPORT_DATA: Record<string, { label: string; chapters: ReportChapte
     ]
   }
 };
+
