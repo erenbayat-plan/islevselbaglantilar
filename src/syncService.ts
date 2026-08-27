@@ -3,13 +3,54 @@
 
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
+import type { ReportStatusType } from './reportData';
+
+export interface ReportStatusItem {
+  status: ReportStatusType;
+  progress: number;
+  author: string;
+  targetPages?: string;
+  note: string;
+  driveLink?: string;
+}
+
+export interface CustomSubSection {
+  id: string;
+  chapterNum: string;
+  code: string;
+  title: string;
+  level2?: string;
+  level3?: string;
+  level4?: string;
+  sartnameUyum?: string;
+  scope?: string;
+  defaultPages?: string;
+  analizler?: any[];
+}
+
+export interface SectionOverride {
+  code?: string;
+  title?: string;
+  level2?: string;
+  level3?: string;
+  defaultPages?: string;
+  scope?: string;
+  sartnameUyum?: string;
+  analizler?: any[];
+  deleted?: boolean;
+}
 
 export interface AppState {
-  workStatus: Record<string, any>;
-  customRows: Record<string, any>;
-  rowOverrides: Record<string, any>;
-  analizOverrides: Record<string, any>;
-  reportStatus?: Record<string, any>;
+  workStatus?: Record<string, any>;
+  customRows?: Record<string, any>;
+  rowOverrides?: Record<string, any>;
+  analizOverrides?: Record<string, any>;
+  reportStatus?: Record<string, ReportStatusItem>;
+  customSubSections?: Record<string, CustomSubSection[]>;
+  sectionOverrides?: Record<string, SectionOverride>;
+  analysisStatuses?: Record<string, 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede'>;
+  chapterNotes?: Record<string, string>;
+  chapterOrders?: Record<string, string[]>;
   lastUpdated: number;
 }
 
@@ -57,6 +98,11 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
         rowOverrides: data.rowOverrides || {},
         analizOverrides: data.analizOverrides || {},
         reportStatus: data.reportStatus || {},
+        customSubSections: data.customSubSections || {},
+        sectionOverrides: data.sectionOverrides || {},
+        analysisStatuses: data.analysisStatuses || {},
+        chapterNotes: data.chapterNotes || {},
+        chapterOrders: data.chapterOrders || {},
         lastUpdated: Number(data.lastUpdated) || 0
       };
     }
@@ -73,6 +119,11 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
     rowOverrides: state.rowOverrides || {},
     analizOverrides: state.analizOverrides || {},
     reportStatus: state.reportStatus || {},
+    customSubSections: state.customSubSections || {},
+    sectionOverrides: state.sectionOverrides || {},
+    analysisStatuses: state.analysisStatuses || {},
+    chapterNotes: state.chapterNotes || {},
+    chapterOrders: state.chapterOrders || {},
     lastUpdated: state.lastUpdated || Date.now()
   };
 
@@ -119,6 +170,11 @@ export function subscribeToCloudState(
           rowOverrides: data.rowOverrides || {},
           analizOverrides: data.analizOverrides || {},
           reportStatus: data.reportStatus || {},
+          customSubSections: data.customSubSections || {},
+          sectionOverrides: data.sectionOverrides || {},
+          analysisStatuses: data.analysisStatuses || {},
+          chapterNotes: data.chapterNotes || {},
+          chapterOrders: data.chapterOrders || {},
           lastUpdated: Number(data.lastUpdated) || 0
         });
       }

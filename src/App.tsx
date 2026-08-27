@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Database, FileText, Search, Activity, CheckCircle2, Layers } from 'lucide-react';
+import { Layers, FileText, Search, Activity, CheckCircle2 } from 'lucide-react';
 import { DATA, STATUS_LABEL } from './data';
 import { 
   fetchGlobalCloudState, 
@@ -7,9 +7,15 @@ import {
   queueGlobalCloudPush, 
   subscribeToTabBroadcast,
   subscribeToCloudState,
-  AppState 
+  AppState,
+  ReportStatusItem,
+  CustomSubSection,
+  SectionOverride
 } from './syncService';
-import ReportTracker, { ReportStatusItem } from './components/ReportTracker';
+import { ReportTracker } from './components/ReportTracker';
+import { HeaderCountdown } from './components/HeaderCountdown';
+import { HeadingFormData } from './components/HeadingModal';
+import { ReportItem } from './reportData';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -32,7 +38,6 @@ function AnalizEditInput({
   const [val, setVal] = useState(initialValue);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync with external changes only when not currently being typed into
   useEffect(() => {
     if (!isFocused) {
       setVal(initialValue);
@@ -76,6 +81,11 @@ const CUSTOM_KEY = 'custom-rows';
 const ROW_OVERRIDES_KEY = 'row-overrides';
 const ANALIZ_OVERRIDES_KEY = 'analiz-overrides';
 const REPORT_STATUS_KEY = 'report-status';
+const CUSTOM_SUBSECTIONS_KEY = 'custom-subsections';
+const SECTION_OVERRIDES_KEY = 'section-overrides';
+const ANALYSIS_STATUSES_KEY = 'analysis-statuses';
+const CHAPTER_NOTES_KEY = 'chapter-notes';
+const CHAPTER_ORDERS_KEY = 'chapter-orders';
 
 type WorkStatus = {
   status: string;
@@ -91,56 +101,9 @@ const SUB_GROUPS: Record<string, string> = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'inventory' | 'report'>('inventory');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const [workStatus, setWorkStatus] = useState<Record<string, WorkStatus>>(() => {
-    try {
-      const saved = localStorage.getItem(WORK_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [customRows, setCustomRows] = useState<Record<string, { id: number; name: string; v?: boolean }[]>>(() => {
-    try {
-      const saved = localStorage.getItem(CUSTOM_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [rowOverrides, setRowOverrides] = useState<Record<string, { n?: string; v?: boolean; deleted?: boolean }>>(() => {
-    try {
-      const saved = localStorage.getItem(ROW_OVERRIDES_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [analizOverrides, setAnalizOverrides] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem(ANALIZ_OVERRIDES_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [reportStatus, setReportStatus] = useState<Record<string, ReportStatusItem>>(() => {
-    try {
-      const saved = localStorage.getItem(REPORT_STATUS_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-  
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'saving' | 'connected'>('connected');
-  const localVersionRef = useRef(0);
-  const cloudVersionRef = useRef(0);
-  const isEditingRef = useRef(false);
-
   const [activeGroup, setActiveGroup] = useState('ulasim');
   const [activeCode, setActiveCode] = useState('4.1');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [onlyGaps, setOnlyGaps] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -148,77 +111,129 @@ export default function App() {
   const [visibleNotes, setVisibleNotes] = useState<Record<string, boolean>>({});
   const [newRowName, setNewRowName] = useState('');
 
-  // Persist to local storage immediately
-  useEffect(() => {
+  // 1. Veri Envanteri States
+  const [workStatus, setWorkStatus] = useState<Record<string, WorkStatus>>(() => {
     try {
-      localStorage.setItem(WORK_KEY, JSON.stringify(workStatus));
-    } catch (e) { console.error(e); }
+      const saved = localStorage.getItem(WORK_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [customRows, setCustomRows] = useState<Record<string, { id: number; name: string; v?: boolean }[]>>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [rowOverrides, setRowOverrides] = useState<Record<string, { n?: string; v?: boolean; deleted?: boolean }>>(() => {
+    try {
+      const saved = localStorage.getItem(ROW_OVERRIDES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [analizOverrides, setAnalizOverrides] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(ANALIZ_OVERRIDES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  // 2. Rapor Çatkısı States
+  const [reportStatus, setReportStatus] = useState<Record<string, ReportStatusItem>>(() => {
+    try {
+      const saved = localStorage.getItem(REPORT_STATUS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [customSubSections, setCustomSubSections] = useState<Record<string, CustomSubSection[]>>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_SUBSECTIONS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [sectionOverrides, setSectionOverrides] = useState<Record<string, SectionOverride>>(() => {
+    try {
+      const saved = localStorage.getItem(SECTION_OVERRIDES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [analysisStatuses, setAnalysisStatuses] = useState<Record<string, 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede'>>(() => {
+    try {
+      const saved = localStorage.getItem(ANALYSIS_STATUSES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [chapterNotes, setChapterNotes] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(CHAPTER_NOTES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [chapterOrders, setChapterOrders] = useState<Record<string, string[]>>(() => {
+    try {
+      const saved = localStorage.getItem(CHAPTER_ORDERS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'saving' | 'connected'>('connected');
+  const localVersionRef = useRef(0);
+  const cloudVersionRef = useRef(0);
+  const isEditingRef = useRef(false);
+
+  // Local storage caching
+  useEffect(() => {
+    try { localStorage.setItem(WORK_KEY, JSON.stringify(workStatus)); } catch (e) {}
   }, [workStatus]);
-
   useEffect(() => {
-    try {
-      localStorage.setItem(CUSTOM_KEY, JSON.stringify(customRows));
-    } catch (e) { console.error(e); }
+    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(customRows)); } catch (e) {}
   }, [customRows]);
-
   useEffect(() => {
-    try {
-      localStorage.setItem(ROW_OVERRIDES_KEY, JSON.stringify(rowOverrides));
-    } catch (e) { console.error(e); }
+    try { localStorage.setItem(ROW_OVERRIDES_KEY, JSON.stringify(rowOverrides)); } catch (e) {}
   }, [rowOverrides]);
-
   useEffect(() => {
-    try {
-      localStorage.setItem(ANALIZ_OVERRIDES_KEY, JSON.stringify(analizOverrides));
-    } catch (e) { console.error(e); }
+    try { localStorage.setItem(ANALIZ_OVERRIDES_KEY, JSON.stringify(analizOverrides)); } catch (e) {}
   }, [analizOverrides]);
-
   useEffect(() => {
-    try {
-      localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(reportStatus));
-    } catch (e) { console.error(e); }
+    try { localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(reportStatus)); } catch (e) {}
   }, [reportStatus]);
+  useEffect(() => {
+    try { localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(customSubSections)); } catch (e) {}
+  }, [customSubSections]);
+  useEffect(() => {
+    try { localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(sectionOverrides)); } catch (e) {}
+  }, [sectionOverrides]);
+  useEffect(() => {
+    try { localStorage.setItem(ANALYSIS_STATUSES_KEY, JSON.stringify(analysisStatuses)); } catch (e) {}
+  }, [analysisStatuses]);
+  useEffect(() => {
+    try { localStorage.setItem(CHAPTER_NOTES_KEY, JSON.stringify(chapterNotes)); } catch (e) {}
+  }, [chapterNotes]);
+  useEffect(() => {
+    try { localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(chapterOrders)); } catch (e) {}
+  }, [chapterOrders]);
 
   // Global Real-time Multi-User Cloud & Multi-Tab Sync
   useEffect(() => {
     let isMounted = true;
 
     const applyCloudState = (cloudData: AppState) => {
-      // If user is actively typing or a local save is pending, do not overwrite
       if (!isMounted || isEditingRef.current) return;
-
-      // Ensure cloud update is newer than local version
-      if (cloudData.lastUpdated && cloudData.lastUpdated < localVersionRef.current) {
-        return;
-      }
+      if (cloudData.lastUpdated && cloudData.lastUpdated < localVersionRef.current) return;
       cloudVersionRef.current = cloudData.lastUpdated || Date.now();
 
-      setWorkStatus(prev => {
-        const next = cloudData.workStatus || {};
-        return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
-      });
-      setCustomRows(prev => {
-        const next = cloudData.customRows || {};
-        return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
-      });
-      setRowOverrides(prev => {
-        const next = cloudData.rowOverrides || {};
-        return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
-      });
-      setAnalizOverrides(prev => {
-        const next = cloudData.analizOverrides || {};
-        return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
-      });
-      if (cloudData.reportStatus) {
-        setReportStatus(prev => {
-          const next = cloudData.reportStatus || {};
-          return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
-        });
-      }
+      if (cloudData.workStatus) setWorkStatus(cloudData.workStatus);
+      if (cloudData.customRows) setCustomRows(cloudData.customRows);
+      if (cloudData.rowOverrides) setRowOverrides(cloudData.rowOverrides);
+      if (cloudData.analizOverrides) setAnalizOverrides(cloudData.analizOverrides);
+      if (cloudData.reportStatus) setReportStatus(cloudData.reportStatus);
+      if (cloudData.customSubSections) setCustomSubSections(cloudData.customSubSections);
+      if (cloudData.sectionOverrides) setSectionOverrides(cloudData.sectionOverrides);
+      if (cloudData.analysisStatuses) setAnalysisStatuses(cloudData.analysisStatuses);
+      if (cloudData.chapterNotes) setChapterNotes(cloudData.chapterNotes);
+      if (cloudData.chapterOrders) setChapterOrders(cloudData.chapterOrders);
       setCloudSyncStatus('synced');
     };
 
-    // Instant multi-tab broadcast listener on same computer
     const unsubscribeTab = subscribeToTabBroadcast((tabState) => {
       if (!isMounted || isEditingRef.current) return;
       if (tabState.workStatus) setWorkStatus(tabState.workStatus);
@@ -226,10 +241,14 @@ export default function App() {
       if (tabState.rowOverrides) setRowOverrides(tabState.rowOverrides);
       if (tabState.analizOverrides) setAnalizOverrides(tabState.analizOverrides);
       if (tabState.reportStatus) setReportStatus(tabState.reportStatus);
+      if (tabState.customSubSections) setCustomSubSections(tabState.customSubSections);
+      if (tabState.sectionOverrides) setSectionOverrides(tabState.sectionOverrides);
+      if (tabState.analysisStatuses) setAnalysisStatuses(tabState.analysisStatuses);
+      if (tabState.chapterNotes) setChapterNotes(tabState.chapterNotes);
+      if (tabState.chapterOrders) setChapterOrders(tabState.chapterOrders);
       setCloudSyncStatus('synced');
     });
 
-    // True real-time cross-device/cross-user sync via Firestore's onSnapshot
     const unsubscribeCloud = subscribeToCloudState(
       applyCloudState,
       () => { if (isMounted) setCloudSyncStatus('connected'); }
@@ -243,31 +262,31 @@ export default function App() {
   }, []);
 
   const triggerCloudSync = (
-    nextWork: Record<string, WorkStatus>,
-    nextCustom: Record<string, { id: number; name: string; v?: boolean }[]>,
-    nextOverrides: Record<string, { n?: string; v?: boolean; deleted?: boolean }>,
-    nextAnaliz: Record<string, string>,
-    nextReport?: Record<string, ReportStatusItem>
+    nextState?: Partial<AppState>
   ) => {
     const newVersion = Date.now();
     localVersionRef.current = newVersion;
     isEditingRef.current = true;
     setCloudSyncStatus('saving');
 
-    const reportToSave = nextReport !== undefined ? nextReport : reportStatus;
+    const fullPayload: AppState = {
+      workStatus: nextState?.workStatus ?? workStatus,
+      customRows: nextState?.customRows ?? customRows,
+      rowOverrides: nextState?.rowOverrides ?? rowOverrides,
+      analizOverrides: nextState?.analizOverrides ?? analizOverrides,
+      reportStatus: nextState?.reportStatus ?? reportStatus,
+      customSubSections: nextState?.customSubSections ?? customSubSections,
+      sectionOverrides: nextState?.sectionOverrides ?? sectionOverrides,
+      analysisStatuses: nextState?.analysisStatuses ?? analysisStatuses,
+      chapterNotes: nextState?.chapterNotes ?? chapterNotes,
+      chapterOrders: nextState?.chapterOrders ?? chapterOrders,
+      lastUpdated: newVersion
+    };
 
     queueGlobalCloudPush(
-      () => ({
-        workStatus: nextWork,
-        customRows: nextCustom,
-        rowOverrides: nextOverrides,
-        analizOverrides: nextAnaliz,
-        reportStatus: reportToSave,
-        lastUpdated: newVersion
-      }),
+      () => fullPayload,
       (status) => {
         setCloudSyncStatus(status === 'saving' ? 'saving' : 'synced');
-        // Release edit lock after push finishes
         setTimeout(() => {
           isEditingRef.current = false;
         }, 1200);
@@ -275,6 +294,7 @@ export default function App() {
     );
   };
 
+  // --- Veri Envanteri Helpers ---
   const rowId = (g: string, code: string, eIdx: number, vIdx: number) => `${g}|${code}|${eIdx}|${vIdx}`;
   const customKey = (g: string, code: string) => `${g}::${code}`;
 
@@ -283,7 +303,8 @@ export default function App() {
   };
 
   const sectionAllRows = (g: string, code: string) => {
-    const sec = DATA[g].sections.find((s: any) => s.code === code);
+    const sec = DATA[g]?.sections?.find((s: any) => s.code === code);
+    if (!sec) return [];
     const rows: any[] = [];
     if (sec.entries) {
       sec.entries.forEach((e: any, eIdx: number) => {
@@ -339,24 +360,6 @@ export default function App() {
     return rows.some(r => r.n.toLowerCase().includes(t));
   };
 
-  const handleReset = () => {
-    if (window.confirm('Tüm iş durumu, öncelik, not ve eklenen/değiştirilen veri kalemleri silinecek. Emin misiniz?')) {
-      setWorkStatus({});
-      setCustomRows({});
-      setRowOverrides({});
-      setAnalizOverrides({});
-      setReportStatus({});
-      try {
-        localStorage.removeItem(WORK_KEY);
-        localStorage.removeItem(CUSTOM_KEY);
-        localStorage.removeItem(ROW_OVERRIDES_KEY);
-        localStorage.removeItem(ANALIZ_OVERRIDES_KEY);
-        localStorage.removeItem(REPORT_STATUS_KEY);
-      } catch {}
-      triggerCloudSync({}, {}, {}, {}, {});
-    }
-  };
-
   const handleAddCustomRow = (g: string, code: string) => {
     if (!newRowName.trim()) return;
     const ck = customKey(g, code);
@@ -364,14 +367,14 @@ export default function App() {
     const updatedCustomRows = { ...customRows, [ck]: newList };
     setCustomRows(updatedCustomRows);
     setNewRowName('');
-    triggerCloudSync(workStatus, updatedCustomRows, rowOverrides, analizOverrides);
+    triggerCloudSync({ customRows: updatedCustomRows });
   };
 
   const handleUpdateWork = (id: string, updates: Partial<WorkStatus>) => {
     const current = workStatus[id] || { status: 'todo', priority: 'low', note: '' };
     const updatedWorkStatus = { ...workStatus, [id]: { ...current, ...updates } };
     setWorkStatus(updatedWorkStatus);
-    triggerCloudSync(updatedWorkStatus, customRows, rowOverrides, analizOverrides);
+    triggerCloudSync({ workStatus: updatedWorkStatus });
   };
 
   const handleUpdateRow = (id: string, updates: { n?: string; v?: boolean }) => {
@@ -384,12 +387,12 @@ export default function App() {
         : c);
       const updatedCustomRows = { ...customRows, [ck]: newList };
       setCustomRows(updatedCustomRows);
-      triggerCloudSync(workStatus, updatedCustomRows, rowOverrides, analizOverrides);
+      triggerCloudSync({ customRows: updatedCustomRows });
     } else {
       const current = rowOverrides[id] || {};
       const updatedOverrides = { ...rowOverrides, [id]: { ...current, ...updates } };
       setRowOverrides(updatedOverrides);
-      triggerCloudSync(workStatus, customRows, updatedOverrides, analizOverrides);
+      triggerCloudSync({ rowOverrides: updatedOverrides });
     }
   };
 
@@ -410,92 +413,409 @@ export default function App() {
     const updatedWork = { ...workStatus };
     delete updatedWork[id];
     setWorkStatus(updatedWork);
-    triggerCloudSync(updatedWork, updatedCustom, updatedOverrides, analizOverrides);
+    triggerCloudSync({ workStatus: updatedWork, customRows: updatedCustom, rowOverrides: updatedOverrides });
   };
 
   const handleSaveAnaliz = (entryId: string, val: string) => {
     const updatedAnaliz = { ...analizOverrides, [entryId]: val };
     setAnalizOverrides(updatedAnaliz);
-    triggerCloudSync(workStatus, customRows, rowOverrides, updatedAnaliz);
+    triggerCloudSync({ analizOverrides: updatedAnaliz });
   };
 
+  // --- Rapor Çatkısı Handlers (2., 3., 4. Derece Başlıklar & Analizler) ---
   const handleUpdateReportStatus = (id: string, updates: Partial<ReportStatusItem>) => {
-    const current = reportStatus[id] || { status: 'not_started', progress: 0, author: '', targetPages: '', note: '' };
+    const current = reportStatus[id] || { status: 'not_started', progress: 0, author: '', targetPages: '', note: '', driveLink: '' };
     const updated = { ...reportStatus, [id]: { ...current, ...updates } };
     setReportStatus(updated);
-    triggerCloudSync(workStatus, customRows, rowOverrides, analizOverrides, updated);
+    triggerCloudSync({ reportStatus: updated });
+  };
+
+  const handleUpdateAnalysisStatus = (analysisId: string, status: 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede') => {
+    const updated = { ...analysisStatuses, [analysisId]: status };
+    setAnalysisStatuses(updated);
+    triggerCloudSync({ analysisStatuses: updated });
+  };
+
+  const handleAddSubSection = (
+    chapterKey: string, // e.g. "ulasim_3"
+    formData: HeadingFormData,
+    degree: 2 | 3 | 4,
+    parentCode?: string
+  ) => {
+    const parts = formData.code.split('.');
+    const chapterNum = parts[0] || '1';
+    let level2 = undefined;
+    let level3 = undefined;
+    let level4 = undefined;
+
+    if (parts.length >= 2) level2 = `${parts[0]}.${parts[1]}`;
+    if (parts.length >= 3) level3 = `${parts[0]}.${parts[1]}.${parts[2]}`;
+    if (parts.length >= 4) level4 = `${parts[0]}.${parts[1]}.${parts[2]}.${parts[3]}`;
+
+    const newSubSection: CustomSubSection = {
+      id: `${activeGroup}_${formData.code.replace(/\./g, '_')}_${Date.now()}`,
+      chapterNum,
+      code: formData.code,
+      title: formData.title,
+      level2,
+      level3,
+      level4,
+      defaultPages: formData.defaultPages || '6-10 sf',
+      scope: formData.icerikOzeti || '',
+      sartnameUyum: formData.sartnameUyum || '',
+      analizler: []
+    };
+
+    const currentList = customSubSections[chapterKey] || [];
+    const updatedList = [...currentList, newSubSection];
+    const updatedCustoms = { ...customSubSections, [chapterKey]: updatedList };
+    setCustomSubSections(updatedCustoms);
+    triggerCloudSync({ customSubSections: updatedCustoms });
+  };
+
+  const handleEditSubSection = (
+    item: ReportItem & { customId?: string; isCustom?: boolean },
+    updates: HeadingFormData
+  ) => {
+    const parts = updates.code.split('.');
+    let level2 = item.level2;
+    let level3 = item.level3;
+    let level4 = item.level4;
+
+    if (parts.length >= 2) level2 = `${parts[0]}.${parts[1]}`;
+    if (parts.length >= 3) level3 = `${parts[0]}.${parts[1]}.${parts[2]}`;
+    if (parts.length >= 4) level4 = `${parts[0]}.${parts[1]}.${parts[2]}.${parts[3]}`;
+
+    if (item.isCustom && item.customId) {
+      // Find which chapterKey contains this customId
+      let foundKey = '';
+      Object.keys(customSubSections).forEach(k => {
+        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+          foundKey = k;
+        }
+      });
+      if (foundKey) {
+        const currentList = customSubSections[foundKey] || [];
+        const updatedList = currentList.map(cs => cs.id === item.customId ? {
+          ...cs,
+          code: updates.code,
+          title: updates.title,
+          level2,
+          level3,
+          level4,
+          defaultPages: updates.defaultPages,
+          scope: updates.icerikOzeti,
+          sartnameUyum: updates.sartnameUyum
+        } : cs);
+        const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        setCustomSubSections(updatedCustoms);
+        triggerCloudSync({ customSubSections: updatedCustoms });
+      }
+    } else {
+      // Default item override
+      const overrideKey = `${activeGroup}_${item.id || item.code}`;
+      const currentOverride = sectionOverrides[overrideKey] || {};
+      const updatedOverrides = {
+        ...sectionOverrides,
+        [overrideKey]: {
+          ...currentOverride,
+          code: updates.code,
+          title: updates.title,
+          level2,
+          level3,
+          defaultPages: updates.defaultPages,
+          scope: updates.icerikOzeti,
+          sartnameUyum: updates.sartnameUyum
+        }
+      };
+      setSectionOverrides(updatedOverrides);
+      triggerCloudSync({ sectionOverrides: updatedOverrides });
+    }
+  };
+
+  const handleDeleteSubSection = (
+    item: ReportItem & { customId?: string; isCustom?: boolean }
+  ) => {
+    if (item.isCustom && item.customId) {
+      let foundKey = '';
+      Object.keys(customSubSections).forEach(k => {
+        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+          foundKey = k;
+        }
+      });
+      if (foundKey) {
+        const currentList = customSubSections[foundKey] || [];
+        const updatedList = currentList.filter(cs => cs.id !== item.customId);
+        const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        setCustomSubSections(updatedCustoms);
+        triggerCloudSync({ customSubSections: updatedCustoms });
+      }
+    } else {
+      const overrideKey = `${activeGroup}_${item.id || item.code}`;
+      const currentOverride = sectionOverrides[overrideKey] || {};
+      const updatedOverrides = {
+        ...sectionOverrides,
+        [overrideKey]: {
+          ...currentOverride,
+          deleted: true
+        }
+      };
+      setSectionOverrides(updatedOverrides);
+      triggerCloudSync({ sectionOverrides: updatedOverrides });
+    }
+  };
+
+  const handleEditSubSectionGroup = (
+    chapterKey: string,
+    groupCode: string,
+    updates: { code: string; title: string }
+  ) => {
+    // Update all matching custom sub-sections and default item overrides with new group code/title
+    const currentList = customSubSections[chapterKey] || [];
+    const updatedCustomList = currentList.map(cs => {
+      if (cs.code.startsWith(groupCode + '.')) {
+        const rest = cs.code.slice(groupCode.length);
+        const newCode = updates.code + rest;
+        return {
+          ...cs,
+          code: newCode,
+          level2: `${updates.code}. ${updates.title}`
+        };
+      }
+      return cs;
+    });
+
+    const updatedCustoms = { ...customSubSections, [chapterKey]: updatedCustomList };
+    setCustomSubSections(updatedCustoms);
+    triggerCloudSync({ customSubSections: updatedCustoms });
+  };
+
+  const handleDeleteSubSectionGroup = (
+    chapterKey: string,
+    groupCode: string
+  ) => {
+    // Delete all custom subsections starting with groupCode
+    const currentList = customSubSections[chapterKey] || [];
+    const updatedCustomList = currentList.filter(cs => !cs.code.startsWith(groupCode));
+    const updatedCustoms = { ...customSubSections, [chapterKey]: updatedCustomList };
+    setCustomSubSections(updatedCustoms);
+    triggerCloudSync({ customSubSections: updatedCustoms });
+  };
+
+  const handleAddAnalysis = (
+    item: ReportItem & { customId?: string; isCustom?: boolean },
+    data: { name: string; category?: string; status: 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede' }
+  ) => {
+    const newId = `an_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const newAnalysis = {
+      id: newId,
+      name: data.name,
+      category: data.category,
+      status: data.status
+    };
+
+    const currentAnalyses = item.analizler || [];
+    const updatedAnalyses = [...currentAnalyses, newAnalysis];
+
+    if (item.isCustom && item.customId) {
+      let foundKey = '';
+      Object.keys(customSubSections).forEach(k => {
+        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+          foundKey = k;
+        }
+      });
+      if (foundKey) {
+        const currentList = customSubSections[foundKey] || [];
+        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        setCustomSubSections(updatedCustoms);
+        triggerCloudSync({ customSubSections: updatedCustoms });
+      }
+    } else {
+      const overrideKey = `${activeGroup}_${item.id || item.code}`;
+      const currentOverride = sectionOverrides[overrideKey] || {};
+      const updatedOverrides = {
+        ...sectionOverrides,
+        [overrideKey]: {
+          ...currentOverride,
+          analizler: updatedAnalyses
+        }
+      };
+      setSectionOverrides(updatedOverrides);
+      triggerCloudSync({ sectionOverrides: updatedOverrides });
+    }
+  };
+
+  const handleEditAnalysis = (
+    item: ReportItem & { customId?: string; isCustom?: boolean },
+    analysisId: string,
+    updates: { name: string; category?: string; status: 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede' }
+  ) => {
+    const currentAnalyses = item.analizler || [];
+    const updatedAnalyses = currentAnalyses.map(an => an.id === analysisId ? {
+      ...an,
+      name: updates.name,
+      category: updates.category,
+      status: updates.status
+    } : an);
+
+    if (item.isCustom && item.customId) {
+      let foundKey = '';
+      Object.keys(customSubSections).forEach(k => {
+        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+          foundKey = k;
+        }
+      });
+      if (foundKey) {
+        const currentList = customSubSections[foundKey] || [];
+        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        setCustomSubSections(updatedCustoms);
+        triggerCloudSync({ customSubSections: updatedCustoms });
+      }
+    } else {
+      const overrideKey = `${activeGroup}_${item.id || item.code}`;
+      const currentOverride = sectionOverrides[overrideKey] || {};
+      const updatedOverrides = {
+        ...sectionOverrides,
+        [overrideKey]: {
+          ...currentOverride,
+          analizler: updatedAnalyses
+        }
+      };
+      setSectionOverrides(updatedOverrides);
+      triggerCloudSync({ sectionOverrides: updatedOverrides });
+    }
+  };
+
+  const handleDeleteAnalysis = (
+    item: ReportItem & { customId?: string; isCustom?: boolean },
+    analysisId: string
+  ) => {
+    const currentAnalyses = item.analizler || [];
+    const updatedAnalyses = currentAnalyses.filter(an => an.id !== analysisId);
+
+    if (item.isCustom && item.customId) {
+      let foundKey = '';
+      Object.keys(customSubSections).forEach(k => {
+        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+          foundKey = k;
+        }
+      });
+      if (foundKey) {
+        const currentList = customSubSections[foundKey] || [];
+        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        setCustomSubSections(updatedCustoms);
+        triggerCloudSync({ customSubSections: updatedCustoms });
+      }
+    } else {
+      const overrideKey = `${activeGroup}_${item.id || item.code}`;
+      const currentOverride = sectionOverrides[overrideKey] || {};
+      const updatedOverrides = {
+        ...sectionOverrides,
+        [overrideKey]: {
+          ...currentOverride,
+          analizler: updatedAnalyses
+        }
+      };
+      setSectionOverrides(updatedOverrides);
+      triggerCloudSync({ sectionOverrides: updatedOverrides });
+    }
+  };
+
+  const handleUpdateChapterNotes = (chapterKey: string, note: string) => {
+    const updated = { ...chapterNotes, [chapterKey]: note };
+    setChapterNotes(updated);
+    triggerCloudSync({ chapterNotes: updated });
+  };
+
+  const handleReorderItems = (chapterKey: string, newOrder: string[]) => {
+    const updated = { ...chapterOrders, [chapterKey]: newOrder };
+    setChapterOrders(updated);
+    triggerCloudSync({ chapterOrders: updated });
+  };
+
+  const handleResetAll = () => {
+    if (window.confirm('Tüm rapor durumları, yazar atamaları ve özel başlıklar sıfırlanacak. Emin misiniz?')) {
+      setReportStatus({});
+      setCustomSubSections({});
+      setSectionOverrides({});
+      setAnalysisStatuses({});
+      setChapterNotes({});
+      setChapterOrders({});
+      try {
+        localStorage.removeItem(REPORT_STATUS_KEY);
+        localStorage.removeItem(CUSTOM_SUBSECTIONS_KEY);
+        localStorage.removeItem(SECTION_OVERRIDES_KEY);
+        localStorage.removeItem(ANALYSIS_STATUSES_KEY);
+        localStorage.removeItem(CHAPTER_NOTES_KEY);
+        localStorage.removeItem(CHAPTER_ORDERS_KEY);
+      } catch {}
+      triggerCloudSync({
+        reportStatus: {},
+        customSubSections: {},
+        sectionOverrides: {},
+        analysisStatuses: {},
+        chapterNotes: {},
+        chapterOrders: {}
+      });
+    }
   };
 
   const activeGroupData = DATA[activeGroup];
-  const activeSec = activeGroupData.sections.find((s: any) => s.code === activeCode);
-  const activeCnt = sectionCounts(activeGroup, activeSec.code);
+  const activeSec = activeGroupData?.sections?.find((s: any) => s.code === activeCode) || activeGroupData?.sections?.[0];
+  const activeCnt = activeSec ? sectionCounts(activeGroup, activeSec.code) : { total: 0, done: 0, gaps: 0 };
   const pctDone = activeCnt.total ? (activeCnt.done / activeCnt.total * 100) : 0;
 
   return (
     <div className={`shell-container theme-${activeGroup}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Toolbar */}
-      <header className="toolbar">
+      {/* Top Toolbar */}
+      <header className="toolbar" id="app-main-toolbar">
         <div className="toolbar-brand-section">
           <div className="brandmark">
             <span className="brand-dot"></span>
-            <span className="brand-text">P2050</span>
+            <span className="brand-text">PLAN 2050</span>
           </div>
           <div className="toolbar-headings">
             <div className="toolbar-title-row">
-              <h1 className="toolbar-title">Afet, İklim Krizi & Rapor Portalı</h1>
-              <span className="toolbar-env-tag">İSTANBUL 2050</span>
+              <h1 className="toolbar-title">Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
+              <span className="toolbar-env-tag">İSTANBUL ÇDP</span>
             </div>
-            <div className="toolbar-sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri & Çatkı</div>
+            <div className="toolbar-sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
           </div>
-        </div>
-
-        {/* Top View Selector Segmented Tabs */}
-        <div className="view-tabs" role="tablist">
-          <button
-            role="tab"
-            aria-selected={activeTab === 'inventory'}
-            className={`view-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
-          >
-            <Layers size={13.5} className="tab-icon" />
-            <span>Veri Envanteri & Analizler</span>
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'report'}
-            className={`view-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
-            onClick={() => setActiveTab('report')}
-          >
-            <FileText size={13.5} className="tab-icon" />
-            <span>Rapor Çatkısı & İlerleme</span>
-          </button>
         </div>
 
         <div className="toolbar-spacer"></div>
 
-        {activeTab === 'inventory' && (
-          <div className="toolbar-actions-group">
-            <div className="search-box">
-              <Search size={13} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Veri veya bölüm ara…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button 
-                  className="search-clear-btn" 
-                  onClick={() => setSearchTerm('')}
-                  title="Aramayı temizle"
-                >
-                  ×
-                </button>
-              )}
-            </div>
+        <div className="toolbar-actions-group">
+          {/* Header Countdown Timer Widget */}
+          <HeaderCountdown />
 
+          {/* Search Box */}
+          <div className="search-box">
+            <Search size={13} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Veri veya bölüm ara…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="search-clear-btn" 
+                onClick={() => setSearchTerm('')}
+                title="Aramayı temizle"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Stats Chips (Active in Veri Envanteri Tab) */}
+          {activeTab === 'inventory' && (
             <div className="toolbar-stats-row">
-              <div className="stat-chip" title="Tamamlanan iş durumu">
+              <div className="stat-chip" title="Tamamlanan veri iş durumu">
                 <span className="stat-chip-label">İş Durumu</span>
                 <span className="stat-chip-val">
                   <b className="val-accent">{overallCounts.workDone}</b>
@@ -505,355 +825,257 @@ export default function App() {
               </div>
               <div className="stat-chip" title="Kaynak verisi varlık durumu">
                 <span className="stat-chip-label">Kaynak</span>
-                <span className="stat-chip-indicators">
-                  <span className="src-indicator src-var">
-                    <span className="src-dot"></span>
-                    <b>{overallCounts.srcVar}</b> Var
-                  </span>
-                  <span className="src-indicator src-yok">
-                    <span className="src-dot"></span>
-                    <b>{overallCounts.srcYok}</b> Yok
-                  </span>
+                <span className="stat-chip-val">
+                  <span style={{ color: '#34D399', fontWeight: 600 }}>{overallCounts.srcVar}</span>
+                  <span style={{ color: '#94A3B8', fontSize: '10px', margin: '0 3px' }}>Var ·</span>
+                  <span style={{ color: '#F87171', fontWeight: 600 }}>{overallCounts.srcYok}</span>
+                  <span style={{ color: '#94A3B8', fontSize: '10px', marginLeft: '3px' }}>Yok</span>
                 </span>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
+      {/* Main Navigation Tabs: Veri Envanteri vs Rapor Çatkısı */}
+      <nav className="app-tabs-nav" role="tablist" id="app-main-tabs">
+        <button
+          role="tab"
+          aria-selected={activeTab === 'inventory'}
+          className={`app-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          <Layers size={14} />
+          <span>Veri Envanteri & Analizler</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'report'}
+          className={`app-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
+          onClick={() => setActiveTab('report')}
+        >
+          <FileText size={14} />
+          <span>Rapor Çatkısı & İlerleme</span>
+        </button>
+      </nav>
+
+      {/* Secondary Group Selector (Ulaşım, Teknik Altyapı, Lojistik) */}
+      <div className="group-nav-bar" id="app-group-selector">
+        {Object.keys(DATA).map(g => (
+          <button
+            key={g}
+            type="button"
+            className={`group-pill-btn ${activeGroup === g ? 'active' : ''}`}
+            onClick={() => {
+              setActiveGroup(g);
+              if (DATA[g]?.sections?.[0]) {
+                setActiveCode(DATA[g].sections[0].code);
+              }
+            }}
+          >
+            {DATA[g].label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab 2: Rapor Çatkısı & İlerleme (Enhanced with 2nd/3rd/4th degree headings, editable titles & drag/drop) */}
       {activeTab === 'report' ? (
         <ReportTracker 
-          activeGroup={activeGroup}
-          setActiveGroup={setActiveGroup}
+          activeGroupKey={activeGroup}
           reportStatus={reportStatus}
-          onUpdateReportStatus={handleUpdateReportStatus}
+          customSubSections={customSubSections}
+          sectionOverrides={sectionOverrides}
+          analysisStatuses={analysisStatuses}
+          chapterNotes={chapterNotes}
+          chapterOrders={chapterOrders}
+          onUpdateStatus={handleUpdateReportStatus}
+          onUpdateAnalysisStatus={handleUpdateAnalysisStatus}
+          onAddSubSection={handleAddSubSection}
+          onEditSubSection={handleEditSubSection}
+          onDeleteSubSection={handleDeleteSubSection}
+          onEditSubSectionGroup={handleEditSubSectionGroup}
+          onDeleteSubSectionGroup={handleDeleteSubSectionGroup}
+          onAddAnalysis={handleAddAnalysis}
+          onEditAnalysis={handleEditAnalysis}
+          onDeleteAnalysis={handleDeleteAnalysis}
+          onUpdateChapterNotes={handleUpdateChapterNotes}
+          onReorderItems={handleReorderItems}
+          onResetAll={handleResetAll}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
         />
       ) : (
-        <div className="shell">
-          {/* Mobile Sidebar Selector Bar */}
-          <div className="mobile-section-picker" style={{ display: 'none' }}>
-            <button 
-              className="mobile-nav-toggle-btn"
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-            >
-              <span>📂 {activeGroupData.label} / {activeSec.code} - {activeSec.title}</span>
-              <span>{mobileMenuOpen ? '▲ Kapat' : '▼ Bölüm Seç'}</span>
-            </button>
-          </div>
-
+        /* Tab 1: Veri Envanteri & Analizler */
+        <div className="layout" id="inventory-layout">
           {/* Sidebar */}
-          <nav className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-            {Object.keys(DATA).map(g => {
-              const grp = DATA[g];
-              const gd = grp.sections.reduce((acc: any, s: any) => {
-                const c = sectionCounts(g, s.code);
-                acc.d += c.done;
-                acc.t += c.total;
-                return acc;
-              }, { d: 0, t: 0 });
-
-              const isCollapsed = collapsedGroups[g];
-
+          <nav className="sidebar" id="inventory-sidebar">
+            <div className="sidebar-title-bar">
+              <span>{activeGroupData.label} Bölümleri</span>
+            </div>
+            {activeGroupData.sections.map((s: any) => {
+              const cnt = sectionCounts(activeGroup, s.code);
+              const isActive = s.code === activeCode;
               return (
-                <div key={g}>
-                  <div className={`grp-head ${isCollapsed ? 'collapsed' : ''}`} onClick={() => setCollapsedGroups(prev => ({ ...prev, [g]: !isCollapsed }))}>
-                    <span className="name">{grp.label}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="gfrac">{gd.d}/{gd.t}</span>
-                      <span className="car">&#x25be;</span>
-                    </span>
+                <div
+                  key={s.code}
+                  className={`sidebar-item ${isActive ? 'active' : ''}`}
+                  onClick={() => setActiveCode(s.code)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="mono" style={{ fontWeight: 700 }}>{s.code}</span>
+                    <span>{s.title}</span>
                   </div>
-                  <div className={`sec-list ${isCollapsed ? 'hidden' : ''}`}>
-                    {['4', '5', '6'].map(prefix => {
-                      const sections = grp.sections.filter((s: any) => s.code.startsWith(prefix));
-                      const visibleSections = sections.filter((s: any) => !searchTerm || sectionMatches(g, s, searchTerm));
-                      
-                      if (visibleSections.length === 0) return null;
-
-                      return (
-                        <div key={prefix} className="sub-grp-wrap">
-                          <div className="sub-grp-title">{SUB_GROUPS[prefix]}</div>
-                          {visibleSections.map((s: any) => {
-                            const cnt = sectionCounts(g, s.code);
-                            const isActive = g === activeGroup && s.code === activeCode;
-                            
-                            let swCls = 'empty';
-                            if (cnt.total > 0) {
-                              if (cnt.done === 0) swCls = '';
-                              else if (cnt.done < cnt.total) swCls = 'partial';
-                              else swCls = 'full';
-                            }
-
-                            return (
-                              <button
-                                key={s.code}
-                                className={`nav-item ${isActive ? 'active' : ''}`}
-                                onClick={() => { 
-                                  setActiveGroup(g); 
-                                  setActiveCode(s.code);
-                                  setMobileMenuOpen(false); 
-                                }}
-                              >
-                                <span className="code">{s.code}</span>
-                                <span className="title">{s.title}</span>
-                                {cnt.gaps > 0 && <span className="gap" title={`${cnt.gaps} eksik veri`}></span>}
-                                <span className={`swatch ${swCls}`}></span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <span className="mono" style={{ fontSize: '11px', opacity: 0.8 }}>
+                    {cnt.done}/{cnt.total}
+                  </span>
                 </div>
               );
             })}
           </nav>
 
-          {/* Content */}
-          <main className="content">
-            <div className="crumb">{activeGroupData.label} / Olası Afet ve İklim Krizi Riskleri</div>
-            <div className="sec-title">
-              <span className="code-badge">{activeSec.code}</span>
-              <h2>{activeSec.title}</h2>
-            </div>
-            
-            <div className="sec-progress">
-              <div className="track">
-                <span style={{ width: `${pctDone}%`, background: 'var(--st-done)' }}></span>
-              </div>
-              <span className="fig">
-                {activeCnt.done} / {activeCnt.total} İş Durumu tamamlandı
-                {activeCnt.gaps > 0 ? ` · ${activeCnt.gaps} Kaynak Veri eksik` : ''}
-              </span>
-            </div>
-
-            <div className="filter-row">
-              <label>
-                <input type="checkbox" checked={onlyGaps} onChange={e => setOnlyGaps(e.target.checked)} /> 
-                Sadece eksik Kaynak Veriyi (Yok) göster
-              </label>
-            </div>
-
-            {activeSec.climate ? (
-              <>
-                <div className="empty-panel">
-                  <p className="etext">{activeSec.sartname}</p>
-                  <div className="hint">Bu bölüm için şartnamede madde tanımlı, ancak analiz türü ve veri envanteri henüz oluşturulmamış — mekânsal analize başlamadan önce aşağıya gerekli veri kalemlerini ekleyip durumlarını takip edebilirsiniz.</div>
-                </div>
-                <div className="entry-card">
-                  <div className="ehead"><div className="elabel">Veri Envanteri</div></div>
-                  <VeriTable 
-                    rows={sectionAllRows(activeGroup, activeSec.code)} 
-                    onlyGaps={onlyGaps}
-                    getWork={getWork}
-                    handleUpdateWork={handleUpdateWork}
-                    visibleNotes={visibleNotes}
-                    setVisibleNotes={setVisibleNotes}
-                    handleUpdateRow={handleUpdateRow}
-                    handleDeleteRow={handleDeleteRow}
-                  />
-                  <div className="add-row" style={{ padding: '0 18px 16px' }}>
-                    <input type="text" placeholder="Yeni veri kalemi adı…" value={newRowName} onChange={e => setNewRowName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCustomRow(activeGroup, activeSec.code)} />
-                    <button onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}>Ekle</button>
+          {/* Main Content Area */}
+          <main className="content-area" id="inventory-main-content">
+            {activeSec ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--ink)' }}>
+                      {activeSec.code} {activeSec.title}
+                    </h2>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                      {activeCnt.done}/{activeCnt.total} Tamamlandı (%{Math.round(pctDone)}) · {activeCnt.gaps} Eksik Veri Kaynağı
+                    </span>
                   </div>
-                </div>
-              </>
-            ) : (
-              activeSec.entries.map((e: any, eIdx: number) => {
-                const rows = e.veri.map((v: any, vIdx: number) => {
-                  const id = rowId(activeGroup, activeSec.code, eIdx, vIdx);
-                  const override = rowOverrides[id];
-                  return {
-                    id,
-                    n: override?.n !== undefined ? override.n : v.n,
-                    v: override?.v !== undefined ? override.v : v.v,
-                    custom: false,
-                    deleted: override?.deleted
-                  };
-                }).filter((r: any) => !r.deleted);
 
-                const entryId = `${activeGroup}|${activeSec.code}|${eIdx}`;
-                const currentAnaliz = analizOverrides[entryId] !== undefined ? analizOverrides[entryId] : (e.analiz ? toTitleCase(e.analiz) : '');
-                
-                return (
-                  <div key={eIdx} className="entry-card">
-                    <div className="ehead">
-                      <div className="elabel">Şartname Karşılığı</div>
-                      <p className="etext">{e.sartname}</p>
-                      {(e.analiz || currentAnaliz) && (
-                        <div className="analiz-block">
-                          <div className="elabel">Analiz Adı</div>
-                          <AnalizEditInput 
-                            initialValue={currentAnaliz}
-                            onSave={(val) => handleSaveAnaliz(entryId, val)}
-                            placeholder="Analiz adı girin..."
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <VeriTable 
-                      rows={rows} 
-                      onlyGaps={onlyGaps}
-                      getWork={getWork}
-                      handleUpdateWork={handleUpdateWork}
-                      visibleNotes={visibleNotes}
-                      setVisibleNotes={setVisibleNotes}
-                      handleUpdateRow={handleUpdateRow}
-                      handleDeleteRow={handleDeleteRow}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Yeni veri kalemi adı…"
+                      value={newRowName}
+                      onChange={e => setNewRowName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleAddCustomRow(activeGroup, activeSec.code);
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        border: '1px solid var(--line-strong)',
+                        borderRadius: '4px',
+                        minWidth: '220px'
+                      }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: '#0F172A',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Veri Ekle
+                    </button>
                   </div>
-                );
-              })
-            )}
-
-            {!activeSec.climate && (
-              <div className="entry-card">
-                <div className="ehead">
-                  <div className="elabel">Eklenen Veri Kalemleri</div>
-                  <p className="etext" style={{ marginBottom: 0, fontSize: '11.5px', color: 'var(--muted)' }}>Bu bölüme özel olarak oluşturduğunuz ek veri satırları</p>
                 </div>
-                <VeriTable 
-                  rows={(customRows[customKey(activeGroup, activeSec.code)] || []).map(c => ({
-                    id: `custom|${activeGroup}|${activeSec.code}|${c.id}`, n: c.name, v: c.v !== undefined ? c.v : false, custom: true, customId: c.id
-                  }))} 
-                  onlyGaps={onlyGaps}
-                  getWork={getWork}
-                  handleUpdateWork={handleUpdateWork}
-                  visibleNotes={visibleNotes}
-                  setVisibleNotes={setVisibleNotes}
-                  handleUpdateRow={handleUpdateRow}
-                  handleDeleteRow={handleDeleteRow}
-                />
-                <div className="add-row" style={{ padding: '0 18px 16px' }}>
-                  <input type="text" placeholder="Yeni veri kalemi adı…" value={newRowName} onChange={e => setNewRowName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCustomRow(activeGroup, activeSec.code)} />
-                  <button onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}>Ekle</button>
+
+                <div className="table-panel">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '45%' }}>Gerekli Veri Kalemi / Katman</th>
+                        <th style={{ width: '15%' }}>Kaynak Durumu</th>
+                        <th style={{ width: '20%' }}>İş Durumu</th>
+                        <th style={{ width: '20%' }}>Not / Açıklama</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sectionAllRows(activeGroup, activeSec.code).map((row: any) => {
+                        const work = getWork(row.id);
+                        return (
+                          <tr key={row.id}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <span style={{ fontWeight: 500 }}>{row.n}</span>
+                                {row.custom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#DC2626',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    Sil
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateRow(row.id, { v: !row.v })}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                              >
+                                {row.v ? (
+                                  <span className="var-badge">✓ Veri Var</span>
+                                ) : (
+                                  <span className="yok-badge">✗ Veri Yok</span>
+                                )}
+                              </button>
+                            </td>
+                            <td>
+                              <select
+                                value={work.status}
+                                onChange={e => handleUpdateWork(row.id, { status: e.target.value })}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '12px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--line-strong)',
+                                  background: work.status === 'done' ? '#ECFDF5' : work.status === 'progress' ? '#EFF6FF' : '#FFFFFF',
+                                  color: work.status === 'done' ? '#065F46' : work.status === 'progress' ? '#1E40AF' : 'var(--ink)'
+                                }}
+                              >
+                                <option value="todo">Başlanmadı</option>
+                                <option value="progress">Devam Ediyor</option>
+                                <option value="done">Tamamlandı</option>
+                              </select>
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                placeholder="Açıklama notu…"
+                                value={work.note || ''}
+                                onChange={e => handleUpdateWork(row.id, { note: e.target.value })}
+                                style={{
+                                  width: '100%',
+                                  padding: '4px 6px',
+                                  fontSize: '12px',
+                                  border: '1px solid var(--line)',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            )}
-
-            <div className="legend">
-              <div className="li"><span className="sw" style={{ background: 'var(--ok)' }}></span>Kaynakta Var</div>
-              <div className="li"><span className="sw" style={{ background: 'var(--warn)' }}></span>Kaynakta Yok / Eksik</div>
-              <div className="li"><span className="sw" style={{ background: 'var(--st-progress)' }}></span>Veri Toplanıyor</div>
-              <div className="li"><span className="sw" style={{ background: 'var(--st-gis)' }}></span>ArcGIS’te Analiz</div>
-              <div className="li"><span className="sw" style={{ background: 'var(--st-done)' }}></span>Tamamlandı</div>
-            </div>
+            ) : null}
           </main>
         </div>
       )}
     </div>
-  );
-}
-
-function VeriTable({ 
-  rows, onlyGaps, getWork, handleUpdateWork, 
-  visibleNotes, setVisibleNotes, handleUpdateRow, handleDeleteRow
-}: any) {
-  const visRows = rows.filter((r: any) => !onlyGaps || r.v === false);
-  
-  if (visRows.length === 0) {
-    return <div style={{ padding: '14px 18px', fontSize: '12px', color: 'var(--muted)' }} className="mono">Gösterilecek satır yok.</div>;
-  }
-
-  return (
-    <table className="veri">
-      <thead>
-        <tr>
-          <th className="idx">#</th>
-          <th>Veri Adı</th>
-          <th>Kaynak Veri</th>
-          <th>İş Durumu</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {visRows.map((r: any, i: number) => {
-          const w = getWork(r.id);
-          const gapCls = (r.v === false) ? 'gap-row' : '';
-          const priCls = (w.priority === 'high') ? 'priority-row' : '';
-          const rowCls = [gapCls, priCls].filter(Boolean).join(' ');
-          const isNoteVisible = visibleNotes[r.id];
-
-          return (
-            <React.Fragment key={r.id}>
-              <tr className={rowCls}>
-                <td className="idx">{i + 1}</td>
-                <td className="vname">
-                  <div className="veri-mobile-header">
-                    <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                      <input 
-                        type="text"
-                        className="edit-input"
-                        value={r.n}
-                        onChange={e => handleUpdateRow(r.id, { n: e.target.value })}
-                        placeholder="Veri adı girin..."
-                      />
-                      {r.custom && <span className="mono" style={{ color: 'var(--muted)', fontSize: '9.5px', marginLeft: '4px', flexShrink: 0 }}>(eklendi)</span>}
-                    </div>
-                  </div>
-                </td>
-                <td className="kaynak">
-                  <div className="veri-mobile-controls">
-                    <div className="veri-mobile-controls-left">
-                      <button 
-                        className={`pill ${r.v ? 'var' : 'yok'}`}
-                        onClick={() => handleUpdateRow(r.id, { v: !r.v })}
-                        style={{ cursor: 'pointer', outline: 'none' }}
-                      >
-                        {r.v ? 'VAR' : 'YOK'}
-                      </button>
-                    </div>
-                  </div>
-                </td>
-                <td className="durum">
-                  <select 
-                    className={`st-${w.status}`} 
-                    value={w.status}
-                    onChange={e => handleUpdateWork(r.id, { status: e.target.value })}
-                  >
-                    {Object.keys(STATUS_LABEL).map(k => (
-                      <option key={k} value={k}>{STATUS_LABEL[k]}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="actions">
-                  <button 
-                    className={`note-btn ${w.note ? 'has' : ''}`} 
-                    title="Not"
-                    aria-label="Not ekle veya düzenle"
-                    onClick={() => setVisibleNotes((prev: any) => ({ ...prev, [r.id]: !prev[r.id] }))}
-                  >
-                    &#x270e;
-                  </button>
-                  <button 
-                    className="del-btn" 
-                    title="Sil"
-                    aria-label="Veri kalemini sil"
-                    onClick={() => {
-                      if (window.confirm('Bu veri kalemi kalıcı olarak silinsin mi?')) {
-                        handleDeleteRow(r.id);
-                      }
-                    }}
-                    style={{ marginLeft: '4px' }}
-                  >
-                    &#x2715;
-                  </button>
-                </td>
-              </tr>
-              <tr className={`note-row ${isNoteVisible ? '' : 'hidden'}`}>
-                <td colSpan={5}>
-                  <textarea 
-                    placeholder="Not ekleyin…"
-                    value={w.note || ''}
-                    onChange={e => handleUpdateWork(r.id, { note: e.target.value })}
-                  />
-                </td>
-              </tr>
-            </React.Fragment>
-          );
-        })}
-      </tbody>
-    </table>
   );
 }
