@@ -699,7 +699,7 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
                               <span className={`report-status-badge st-${st.status}`}>
                                 {getStatusLabel(st.status)}
                               </span>
-                              <span className="auto-status-subtext">Otomatik Hesaplanan</span>
+                              
                             </div>
                           ) : (
                             <select
