@@ -257,7 +257,11 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
       {
         num: '3',
         title: 'ULAŞIM SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
-        subSections: []
+        subSections: [
+          { code: '3.1', title: 'Karayolu Ulaşım Ağı' },
+          { code: '3.2', title: 'Ulaşım Odakları (Aktarma Merkezi, İstasyonlar, İskeleler vb.)' },
+          { code: '3.3', title: 'Toplu Taşıma Sistemi (Lastik Tekerlek, Raylı Sistem vb.)' }
+        ]
       },
       {
         num: '4',
@@ -293,7 +297,12 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
           { code: '7.2', title: 'Afet ve İklim Dayanıklı Ulaşımda Uluslararası Uygulama Örnekleri' },
           { code: '7.2.1', title: 'Japonya: Ulaşımın “Hayat Hatları (Lifelines)” Olarak Ele Alınması' },
           { code: '7.2.2', title: 'New York City: Tahliye Odaklı Afet Ulaşımı' },
-          { code: '7.2.3', title: 'Hollanda: Akıllı Ulaşım Sistemleri (ITS)' }
+          { code: '7.2.3', title: 'Hollanda: Akıllı Ulaşım Sistemleri (ITS)' },
+          { code: '7.2.4', title: 'Singapur: Taşkın ve Aşırı Yağışlara Karşı Dayanıklı Toplu Taşıma' },
+          { code: '7.2.5', title: 'Yeni Zelanda: Kaikōura Depremi Sonrası Ulaşım Ağının Yeniden Yapılanması' },
+          { code: '7.2.6', title: 'Londra: Çok Modlu Ulaşım Sisteminde İklim Risk Yönetimi' },
+          { code: '7.2.7', title: 'Sydney: İklim Değişikliğine Uyumlu Metro Sistemi' },
+          { code: '7.2.8', title: 'Hanoi: Taşkın Riskine Karşı Metro İşletme ve Varlık Yönetimi' }
         ]
       },
       {
@@ -584,7 +593,11 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
       {
         num: '3',
         title: 'LOJİSTİK SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
-        subSections: []
+        subSections: [
+          { code: '3.1', title: 'Ulaşım Ağı (Karayolu, Demiryolu, Havayolu, Denizyolu)' },
+          { code: '3.2', title: 'Lojistik Odakları' },
+          { code: '3.3', title: 'Lojistik Terminaller' }
+        ]
       },
       {
         num: '4',
