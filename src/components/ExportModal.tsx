@@ -51,9 +51,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     const rows: string[][] = [headers];
 
     chapters.forEach(ch => {
-      const defaultItems = ch.items || [];
-      const customs = customSubSections[ch.num] || [];
-      const allItems = [...defaultItems, ...customs];
+      const allItems = ch.items || [];
 
       allItems.forEach(item => {
         const id = getItemId(item);

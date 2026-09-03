@@ -86,6 +86,7 @@ const SECTION_OVERRIDES_KEY = 'section-overrides';
 const ANALYSIS_STATUSES_KEY = 'analysis-statuses';
 const CHAPTER_NOTES_KEY = 'chapter-notes';
 const CHAPTER_ORDERS_KEY = 'chapter-orders';
+const LAST_UPDATED_KEY = 'app-last-updated';
 
 type WorkStatus = {
   status: string;
@@ -176,9 +177,55 @@ export default function App() {
   });
   
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'saving' | 'connected'>('connected');
-  const localVersionRef = useRef(0);
+  const localVersionRef = useRef<number>((() => {
+    try {
+      const saved = localStorage.getItem(LAST_UPDATED_KEY);
+      return saved ? Number(saved) : 0;
+    } catch { return 0; }
+  })());
   const cloudVersionRef = useRef(0);
-  const isEditingRef = useRef(false);
+
+  // Live state ref to ensure synchronous access during operations
+  const stateRef = useRef<AppState>({
+    workStatus,
+    customRows,
+    rowOverrides,
+    analizOverrides,
+    reportStatus,
+    customSubSections,
+    sectionOverrides,
+    analysisStatuses,
+    chapterNotes,
+    chapterOrders,
+    lastUpdated: localVersionRef.current
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      workStatus,
+      customRows,
+      rowOverrides,
+      analizOverrides,
+      reportStatus,
+      customSubSections,
+      sectionOverrides,
+      analysisStatuses,
+      chapterNotes,
+      chapterOrders,
+      lastUpdated: localVersionRef.current
+    };
+  }, [
+    workStatus,
+    customRows,
+    rowOverrides,
+    analizOverrides,
+    reportStatus,
+    customSubSections,
+    sectionOverrides,
+    analysisStatuses,
+    chapterNotes,
+    chapterOrders
+  ]);
 
   // Local storage caching
   useEffect(() => {
@@ -217,25 +264,120 @@ export default function App() {
     let isMounted = true;
 
     const applyCloudState = (cloudData: AppState) => {
-      if (!isMounted || isEditingRef.current) return;
-      if (cloudData.lastUpdated && cloudData.lastUpdated < localVersionRef.current) return;
-      cloudVersionRef.current = cloudData.lastUpdated || Date.now();
+      if (!isMounted) return;
+      const incomingTime = Number(cloudData.lastUpdated) || 0;
+      const localTime = localVersionRef.current;
 
-      if (cloudData.workStatus) setWorkStatus(cloudData.workStatus);
-      if (cloudData.customRows) setCustomRows(cloudData.customRows);
-      if (cloudData.rowOverrides) setRowOverrides(cloudData.rowOverrides);
-      if (cloudData.analizOverrides) setAnalizOverrides(cloudData.analizOverrides);
-      if (cloudData.reportStatus) setReportStatus(cloudData.reportStatus);
-      if (cloudData.customSubSections) setCustomSubSections(cloudData.customSubSections);
-      if (cloudData.sectionOverrides) setSectionOverrides(cloudData.sectionOverrides);
-      if (cloudData.analysisStatuses) setAnalysisStatuses(cloudData.analysisStatuses);
-      if (cloudData.chapterNotes) setChapterNotes(cloudData.chapterNotes);
-      if (cloudData.chapterOrders) setChapterOrders(cloudData.chapterOrders);
+      // If local state is strictly newer than what came from cloud, do not overwrite local changes
+      if (incomingTime > 0 && localTime > 0 && incomingTime < localTime) {
+        console.log(`Local state is newer (${localTime} > ${incomingTime}), syncing local to cloud...`);
+        const payload: AppState = {
+          ...stateRef.current,
+          lastUpdated: localTime
+        };
+        pushGlobalCloudState(payload);
+        return;
+      }
+
+      cloudVersionRef.current = incomingTime;
+      localVersionRef.current = incomingTime;
+      try {
+        localStorage.setItem(LAST_UPDATED_KEY, String(incomingTime));
+      } catch (e) {}
+
+      if (cloudData.workStatus !== undefined) {
+        setWorkStatus(prev => {
+          const merged = { ...prev, ...cloudData.workStatus };
+          try { localStorage.setItem(WORK_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.customRows !== undefined) {
+        setCustomRows(prev => {
+          const merged: Record<string, any[]> = { ...prev };
+          Object.keys(cloudData.customRows || {}).forEach(k => {
+            const cloudItems = cloudData.customRows![k] || [];
+            const localItems = prev[k] || [];
+            const itemMap = new Map<any, any>();
+            localItems.forEach(item => itemMap.set(item.id, item));
+            cloudItems.forEach(item => itemMap.set(item.id, item));
+            merged[k] = Array.from(itemMap.values());
+          });
+          try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.rowOverrides !== undefined) {
+        setRowOverrides(prev => {
+          const merged = { ...prev, ...cloudData.rowOverrides };
+          try { localStorage.setItem(ROW_OVERRIDES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.analizOverrides !== undefined) {
+        setAnalizOverrides(prev => {
+          const merged = { ...prev, ...cloudData.analizOverrides };
+          try { localStorage.setItem(ANALIZ_OVERRIDES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.reportStatus !== undefined) {
+        setReportStatus(prev => {
+          const merged = { ...prev, ...cloudData.reportStatus };
+          try { localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.customSubSections !== undefined) {
+        setCustomSubSections(prev => {
+          const merged: Record<string, CustomSubSection[]> = { ...prev };
+          Object.keys(cloudData.customSubSections || {}).forEach(k => {
+            const cloudItems = cloudData.customSubSections![k] || [];
+            const localItems = prev[k] || [];
+            const itemMap = new Map<string, CustomSubSection>();
+            localItems.forEach(item => itemMap.set(item.id, item));
+            cloudItems.forEach(item => itemMap.set(item.id, item));
+            merged[k] = Array.from(itemMap.values());
+          });
+          try {
+            localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(merged));
+          } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.sectionOverrides !== undefined) {
+        setSectionOverrides(prev => {
+          const merged = { ...prev, ...cloudData.sectionOverrides };
+          try { localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.analysisStatuses !== undefined) {
+        setAnalysisStatuses(prev => {
+          const merged = { ...prev, ...cloudData.analysisStatuses };
+          try { localStorage.setItem(ANALYSIS_STATUSES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.chapterNotes !== undefined) {
+        setChapterNotes(prev => {
+          const merged = { ...prev, ...cloudData.chapterNotes };
+          try { localStorage.setItem(CHAPTER_NOTES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.chapterOrders !== undefined) {
+        setChapterOrders(prev => {
+          const merged = { ...prev, ...cloudData.chapterOrders };
+          try { localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
       setCloudSyncStatus('synced');
     };
 
     const unsubscribeTab = subscribeToTabBroadcast((tabState) => {
-      if (!isMounted || isEditingRef.current) return;
+      if (!isMounted) return;
       if (tabState.workStatus) setWorkStatus(tabState.workStatus);
       if (tabState.customRows) setCustomRows(tabState.customRows);
       if (tabState.rowOverrides) setRowOverrides(tabState.rowOverrides);
@@ -266,30 +408,42 @@ export default function App() {
   ) => {
     const newVersion = Date.now();
     localVersionRef.current = newVersion;
-    isEditingRef.current = true;
+    try {
+      localStorage.setItem(LAST_UPDATED_KEY, String(newVersion));
+    } catch (e) {}
     setCloudSyncStatus('saving');
 
     const fullPayload: AppState = {
-      workStatus: nextState?.workStatus ?? workStatus,
-      customRows: nextState?.customRows ?? customRows,
-      rowOverrides: nextState?.rowOverrides ?? rowOverrides,
-      analizOverrides: nextState?.analizOverrides ?? analizOverrides,
-      reportStatus: nextState?.reportStatus ?? reportStatus,
-      customSubSections: nextState?.customSubSections ?? customSubSections,
-      sectionOverrides: nextState?.sectionOverrides ?? sectionOverrides,
-      analysisStatuses: nextState?.analysisStatuses ?? analysisStatuses,
-      chapterNotes: nextState?.chapterNotes ?? chapterNotes,
-      chapterOrders: nextState?.chapterOrders ?? chapterOrders,
+      workStatus: nextState?.workStatus ?? stateRef.current.workStatus,
+      customRows: nextState?.customRows ?? stateRef.current.customRows,
+      rowOverrides: nextState?.rowOverrides ?? stateRef.current.rowOverrides,
+      analizOverrides: nextState?.analizOverrides ?? stateRef.current.analizOverrides,
+      reportStatus: nextState?.reportStatus ?? stateRef.current.reportStatus,
+      customSubSections: nextState?.customSubSections ?? stateRef.current.customSubSections,
+      sectionOverrides: nextState?.sectionOverrides ?? stateRef.current.sectionOverrides,
+      analysisStatuses: nextState?.analysisStatuses ?? stateRef.current.analysisStatuses,
+      chapterNotes: nextState?.chapterNotes ?? stateRef.current.chapterNotes,
+      chapterOrders: nextState?.chapterOrders ?? stateRef.current.chapterOrders,
       lastUpdated: newVersion
     };
+
+    stateRef.current = fullPayload;
+
+    if (nextState?.workStatus) try { localStorage.setItem(WORK_KEY, JSON.stringify(nextState.workStatus)); } catch (e) {}
+    if (nextState?.customRows) try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(nextState.customRows)); } catch (e) {}
+    if (nextState?.rowOverrides) try { localStorage.setItem(ROW_OVERRIDES_KEY, JSON.stringify(nextState.rowOverrides)); } catch (e) {}
+    if (nextState?.analizOverrides) try { localStorage.setItem(ANALIZ_OVERRIDES_KEY, JSON.stringify(nextState.analizOverrides)); } catch (e) {}
+    if (nextState?.reportStatus) try { localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(nextState.reportStatus)); } catch (e) {}
+    if (nextState?.customSubSections) try { localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(nextState.customSubSections)); } catch (e) {}
+    if (nextState?.sectionOverrides) try { localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(nextState.sectionOverrides)); } catch (e) {}
+    if (nextState?.analysisStatuses) try { localStorage.setItem(ANALYSIS_STATUSES_KEY, JSON.stringify(nextState.analysisStatuses)); } catch (e) {}
+    if (nextState?.chapterNotes) try { localStorage.setItem(CHAPTER_NOTES_KEY, JSON.stringify(nextState.chapterNotes)); } catch (e) {}
+    if (nextState?.chapterOrders) try { localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(nextState.chapterOrders)); } catch (e) {}
 
     queueGlobalCloudPush(
       () => fullPayload,
       (status) => {
         setCloudSyncStatus(status === 'saving' ? 'saving' : 'synced');
-        setTimeout(() => {
-          isEditingRef.current = false;
-        }, 1200);
       }
     );
   };
@@ -442,7 +596,7 @@ export default function App() {
     degree: 2 | 3 | 4,
     parentCode?: string
   ) => {
-    const parts = formData.code.split('.');
+    const parts = formData.code.split('.').filter(Boolean);
     const chapterNum = parts[0] || '1';
     let level2 = undefined;
     let level3 = undefined;
@@ -466,9 +620,15 @@ export default function App() {
       analizler: []
     };
 
-    const currentList = customSubSections[chapterKey] || [];
+    const targetKey = chapterKey && chapterKey.includes('_') ? chapterKey : `${activeGroup}_${chapterNum}`;
+    const currentList = customSubSections[targetKey] || [];
     const updatedList = [...currentList, newSubSection];
-    const updatedCustoms = { ...customSubSections, [chapterKey]: updatedList };
+    const updatedCustoms = { ...customSubSections, [targetKey]: updatedList };
+    
+    try {
+      localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+    } catch (e) {}
+
     setCustomSubSections(updatedCustoms);
     triggerCloudSync({ customSubSections: updatedCustoms });
   };
@@ -477,7 +637,7 @@ export default function App() {
     item: ReportItem & { customId?: string; isCustom?: boolean },
     updates: HeadingFormData
   ) => {
-    const parts = updates.code.split('.');
+    const parts = updates.code.split('.').filter(Boolean);
     let level2 = item.level2;
     let level3 = item.level3;
     let level4 = item.level4;
@@ -486,17 +646,18 @@ export default function App() {
     if (parts.length >= 3) level3 = `${parts[0]}.${parts[1]}.${parts[2]}`;
     if (parts.length >= 4) level4 = `${parts[0]}.${parts[1]}.${parts[2]}.${parts[3]}`;
 
-    if (item.isCustom && item.customId) {
+    if (item.isCustom && (item.customId || item.id)) {
+      const matchId = item.customId || item.id;
       // Find which chapterKey contains this customId
       let foundKey = '';
       Object.keys(customSubSections).forEach(k => {
-        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+        if (customSubSections[k].some(cs => cs.id === matchId)) {
           foundKey = k;
         }
       });
       if (foundKey) {
         const currentList = customSubSections[foundKey] || [];
-        const updatedList = currentList.map(cs => cs.id === item.customId ? {
+        const updatedList = currentList.map(cs => cs.id === matchId ? {
           ...cs,
           code: updates.code,
           title: updates.title,
@@ -508,6 +669,9 @@ export default function App() {
           sartnameUyum: updates.sartnameUyum
         } : cs);
         const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        try {
+          localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+        } catch (e) {}
         setCustomSubSections(updatedCustoms);
         triggerCloudSync({ customSubSections: updatedCustoms });
       }
@@ -528,6 +692,9 @@ export default function App() {
           sartnameUyum: updates.sartnameUyum
         }
       };
+      try {
+        localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides));
+      } catch (e) {}
       setSectionOverrides(updatedOverrides);
       triggerCloudSync({ sectionOverrides: updatedOverrides });
     }
@@ -536,17 +703,21 @@ export default function App() {
   const handleDeleteSubSection = (
     item: ReportItem & { customId?: string; isCustom?: boolean }
   ) => {
-    if (item.isCustom && item.customId) {
+    if (item.isCustom && (item.customId || item.id)) {
+      const matchId = item.customId || item.id;
       let foundKey = '';
       Object.keys(customSubSections).forEach(k => {
-        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+        if (customSubSections[k].some(cs => cs.id === matchId)) {
           foundKey = k;
         }
       });
       if (foundKey) {
         const currentList = customSubSections[foundKey] || [];
-        const updatedList = currentList.filter(cs => cs.id !== item.customId);
+        const updatedList = currentList.filter(cs => cs.id !== matchId);
         const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        try {
+          localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+        } catch (e) {}
         setCustomSubSections(updatedCustoms);
         triggerCloudSync({ customSubSections: updatedCustoms });
       }
@@ -560,6 +731,9 @@ export default function App() {
           deleted: true
         }
       };
+      try {
+        localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides));
+      } catch (e) {}
       setSectionOverrides(updatedOverrides);
       triggerCloudSync({ sectionOverrides: updatedOverrides });
     }
@@ -586,6 +760,9 @@ export default function App() {
     });
 
     const updatedCustoms = { ...customSubSections, [chapterKey]: updatedCustomList };
+    try {
+      localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+    } catch (e) {}
     setCustomSubSections(updatedCustoms);
     triggerCloudSync({ customSubSections: updatedCustoms });
   };
@@ -598,6 +775,9 @@ export default function App() {
     const currentList = customSubSections[chapterKey] || [];
     const updatedCustomList = currentList.filter(cs => !cs.code.startsWith(groupCode));
     const updatedCustoms = { ...customSubSections, [chapterKey]: updatedCustomList };
+    try {
+      localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+    } catch (e) {}
     setCustomSubSections(updatedCustoms);
     triggerCloudSync({ customSubSections: updatedCustoms });
   };
@@ -617,17 +797,21 @@ export default function App() {
     const currentAnalyses = item.analizler || [];
     const updatedAnalyses = [...currentAnalyses, newAnalysis];
 
-    if (item.isCustom && item.customId) {
+    if (item.isCustom && (item.customId || item.id)) {
+      const matchId = item.customId || item.id;
       let foundKey = '';
       Object.keys(customSubSections).forEach(k => {
-        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+        if (customSubSections[k].some(cs => cs.id === matchId)) {
           foundKey = k;
         }
       });
       if (foundKey) {
         const currentList = customSubSections[foundKey] || [];
-        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedList = currentList.map(cs => cs.id === matchId ? { ...cs, analizler: updatedAnalyses } : cs);
         const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        try {
+          localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+        } catch (e) {}
         setCustomSubSections(updatedCustoms);
         triggerCloudSync({ customSubSections: updatedCustoms });
       }
@@ -641,6 +825,9 @@ export default function App() {
           analizler: updatedAnalyses
         }
       };
+      try {
+        localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides));
+      } catch (e) {}
       setSectionOverrides(updatedOverrides);
       triggerCloudSync({ sectionOverrides: updatedOverrides });
     }
@@ -659,17 +846,21 @@ export default function App() {
       status: updates.status
     } : an);
 
-    if (item.isCustom && item.customId) {
+    if (item.isCustom && (item.customId || item.id)) {
+      const matchId = item.customId || item.id;
       let foundKey = '';
       Object.keys(customSubSections).forEach(k => {
-        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+        if (customSubSections[k].some(cs => cs.id === matchId)) {
           foundKey = k;
         }
       });
       if (foundKey) {
         const currentList = customSubSections[foundKey] || [];
-        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedList = currentList.map(cs => cs.id === matchId ? { ...cs, analizler: updatedAnalyses } : cs);
         const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        try {
+          localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+        } catch (e) {}
         setCustomSubSections(updatedCustoms);
         triggerCloudSync({ customSubSections: updatedCustoms });
       }
@@ -683,6 +874,9 @@ export default function App() {
           analizler: updatedAnalyses
         }
       };
+      try {
+        localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides));
+      } catch (e) {}
       setSectionOverrides(updatedOverrides);
       triggerCloudSync({ sectionOverrides: updatedOverrides });
     }
@@ -695,17 +889,21 @@ export default function App() {
     const currentAnalyses = item.analizler || [];
     const updatedAnalyses = currentAnalyses.filter(an => an.id !== analysisId);
 
-    if (item.isCustom && item.customId) {
+    if (item.isCustom && (item.customId || item.id)) {
+      const matchId = item.customId || item.id;
       let foundKey = '';
       Object.keys(customSubSections).forEach(k => {
-        if (customSubSections[k].some(cs => cs.id === item.customId)) {
+        if (customSubSections[k].some(cs => cs.id === matchId)) {
           foundKey = k;
         }
       });
       if (foundKey) {
         const currentList = customSubSections[foundKey] || [];
-        const updatedList = currentList.map(cs => cs.id === item.customId ? { ...cs, analizler: updatedAnalyses } : cs);
+        const updatedList = currentList.map(cs => cs.id === matchId ? { ...cs, analizler: updatedAnalyses } : cs);
         const updatedCustoms = { ...customSubSections, [foundKey]: updatedList };
+        try {
+          localStorage.setItem(CUSTOM_SUBSECTIONS_KEY, JSON.stringify(updatedCustoms));
+        } catch (e) {}
         setCustomSubSections(updatedCustoms);
         triggerCloudSync({ customSubSections: updatedCustoms });
       }
@@ -719,6 +917,9 @@ export default function App() {
           analizler: updatedAnalyses
         }
       };
+      try {
+        localStorage.setItem(SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides));
+      } catch (e) {}
       setSectionOverrides(updatedOverrides);
       triggerCloudSync({ sectionOverrides: updatedOverrides });
     }
@@ -726,12 +927,18 @@ export default function App() {
 
   const handleUpdateChapterNotes = (chapterKey: string, note: string) => {
     const updated = { ...chapterNotes, [chapterKey]: note };
+    try {
+      localStorage.setItem(CHAPTER_NOTES_KEY, JSON.stringify(updated));
+    } catch (e) {}
     setChapterNotes(updated);
     triggerCloudSync({ chapterNotes: updated });
   };
 
   const handleReorderItems = (chapterKey: string, newOrder: string[]) => {
     const updated = { ...chapterOrders, [chapterKey]: newOrder };
+    try {
+      localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(updated));
+    } catch (e) {}
     setChapterOrders(updated);
     triggerCloudSync({ chapterOrders: updated });
   };

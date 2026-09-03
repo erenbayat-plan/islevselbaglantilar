@@ -940,6 +940,19 @@ export const ChapterCard: React.FC<ChapterCardProps> = ({
         onSubmit={(formData) => {
           if (headingModalState.mode === 'add') {
             onAddSubSection(chapter.num, formData, headingModalState.degree, headingModalState.parentCode);
+            // Auto uncollapse ancestors so the newly added heading is immediately visible
+            const codeParts = formData.code.split('.').filter(Boolean);
+            setCollapsedGroups(prev => {
+              const next = { ...prev };
+              for (let i = 1; i < codeParts.length; i++) {
+                const parentCode = codeParts.slice(0, i).join('.');
+                next[parentCode] = false;
+              }
+              if (headingModalState.parentCode) {
+                next[headingModalState.parentCode] = false;
+              }
+              return next;
+            });
           } else if (headingModalState.targetItem) {
             onEditSubSection(headingModalState.targetItem, formData);
           }

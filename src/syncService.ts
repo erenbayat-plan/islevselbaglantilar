@@ -56,8 +56,8 @@ export interface AppState {
 
 const STATE_DOC_REF = doc(db, 'app_state', 'main');
 
-let syncTimeout: any = null;
 let broadcastChannel: BroadcastChannel | null = null;
+let lastGetStateFn: (() => AppState) | null = null;
 
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -65,6 +65,15 @@ try {
   }
 } catch (e) {
   console.warn('BroadcastChannel not supported');
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (lastGetStateFn) {
+      const state = lastGetStateFn();
+      pushGlobalCloudState(state);
+    }
+  });
 }
 
 export function subscribeToTabBroadcast(onUpdate: (state: AppState) => void) {
@@ -143,16 +152,15 @@ export function queueGlobalCloudPush(
   getState: () => AppState,
   onStatusChange?: (status: 'saving' | 'synced' | 'error') => void
 ) {
+  lastGetStateFn = getState;
   if (onStatusChange) onStatusChange('saving');
-  if (syncTimeout) clearTimeout(syncTimeout);
   
-  syncTimeout = setTimeout(async () => {
-    const state = getState();
-    const ok = await pushGlobalCloudState(state);
+  const state = getState();
+  pushGlobalCloudState(state).then(ok => {
     if (onStatusChange) {
       onStatusChange(ok ? 'synced' : 'error');
     }
-  }, 250);
+  });
 }
 
 export function subscribeToCloudState(
@@ -187,3 +195,4 @@ export function subscribeToCloudState(
 
   return unsubscribe;
 }
+
