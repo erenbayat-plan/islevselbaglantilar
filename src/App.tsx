@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Layers, FileText, Search, Activity, CheckCircle2 } from 'lucide-react';
+import { 
+  Layers, 
+  FileText, 
+  Search, 
+  Activity, 
+  CheckCircle2, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  ArrowUp, 
+  ArrowDown, 
+  GripVertical, 
+  Check, 
+  X,
+  LayoutGrid,
+  Table as TableIcon,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import { DATA, STATUS_LABEL } from './data';
 import { 
   fetchGlobalCloudState, 
@@ -15,7 +33,9 @@ import {
 import { ReportTracker } from './components/ReportTracker';
 import { HeaderCountdown } from './components/HeaderCountdown';
 import { HeadingFormData } from './components/HeadingModal';
-import { ReportItem } from './reportData';
+import { RiskMatrixView } from './components/RiskMatrixView';
+import { ReportItem, REPORT_CHAPTERS_MAP } from './reportData';
+import { SpatialHazardInventory, SPATIAL_CHAPTERS } from './components/SpatialHazardInventory';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -86,6 +106,9 @@ const SECTION_OVERRIDES_KEY = 'section-overrides';
 const ANALYSIS_STATUSES_KEY = 'analysis-statuses';
 const CHAPTER_NOTES_KEY = 'chapter-notes';
 const CHAPTER_ORDERS_KEY = 'chapter-orders';
+const INVENTORY_ORDERS_KEY = 'inventory-orders';
+const CUSTOM_INVENTORY_SECTIONS_KEY = 'custom-inventory-sections';
+const INVENTORY_SECTION_OVERRIDES_KEY = 'inventory-section-overrides';
 const LAST_UPDATED_KEY = 'app-last-updated';
 
 type WorkStatus = {
@@ -94,16 +117,23 @@ type WorkStatus = {
   note: string;
 };
 
-const SUB_GROUPS: Record<string, string> = {
-  '4': 'Doğa Kaynaklı',
-  '5': 'İnsan ve Teknoloji Kaynaklı',
-  '6': 'İklim Krizi'
+const CHAPTER_TITLES_FALLBACK: Record<string, string> = {
+  '1': 'GİRİŞ',
+  '2': 'STRATEJİ, PLANLAMA VE YASAL ÇERÇEVE',
+  '3': 'SİSTEMLER VE KRİTİK BİLEŞENLERİ',
+  '4': 'DOĞA KAYNAKLI AFETLERİN ETKİLERİ',
+  '5': 'İNSAN VE TEKNOLOJİ KAYNAKLI AFETLERİN ETKİLERİ',
+  '6': 'İKLİM KRİZİ ETKİLERİ',
+  '7': 'İYİ UYGULAMA ÖRNEKLERİ',
+  '8': 'ÇOKLU RİSK DEĞERLENDİRMESİ',
+  '9': 'KAYNAKÇA'
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'inventory' | 'report'>('inventory');
   const [activeGroup, setActiveGroup] = useState('ulasim');
-  const [activeCode, setActiveCode] = useState('4.1');
+  const [activeCode, setActiveCode] = useState('3.1');
+  const [inventoryViewMode, setInventoryViewMode] = useState<'table' | 'matrix'>('table');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [onlyGaps, setOnlyGaps] = useState(false);
@@ -111,6 +141,18 @@ export default function App() {
   
   const [visibleNotes, setVisibleNotes] = useState<Record<string, boolean>>({});
   const [newRowName, setNewRowName] = useState('');
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editingRowText, setEditingRowText] = useState<string>('');
+  const [draggedInventoryRowId, setDraggedInventoryRowId] = useState<string | null>(null);
+  const [dragOverInventoryRowId, setDragOverInventoryRowId] = useState<string | null>(null);
+  const [dragOverPos, setDragOverPos] = useState<'top' | 'bottom'>('bottom');
+
+  // Modal states for section management in Veri Envanteri
+  const [showAddSectionModal, setShowAddSectionModal] = useState(false);
+  const [newSectionCode, setNewSectionCode] = useState('');
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [editingSectionModal, setEditingSectionModal] = useState<{ originalCode: string; code: string; title: string } | null>(null);
+  const [deletingSectionCode, setDeletingSectionCode] = useState<string | null>(null);
 
   // 1. Veri Envanteri States
   const [workStatus, setWorkStatus] = useState<Record<string, WorkStatus>>(() => {
@@ -134,6 +176,24 @@ export default function App() {
   const [analizOverrides, setAnalizOverrides] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(ANALIZ_OVERRIDES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [inventoryOrders, setInventoryOrders] = useState<Record<string, string[]>>(() => {
+    try {
+      const saved = localStorage.getItem(INVENTORY_ORDERS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [customInventorySections, setCustomInventorySections] = useState<Record<string, { code: string; title: string; id: string }[]>>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_INVENTORY_SECTIONS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [inventorySectionOverrides, setInventorySectionOverrides] = useState<Record<string, { code?: string; title?: string; deleted?: boolean }>>(() => {
+    try {
+      const saved = localStorage.getItem(INVENTORY_SECTION_OVERRIDES_KEY);
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
@@ -197,6 +257,9 @@ export default function App() {
     analysisStatuses,
     chapterNotes,
     chapterOrders,
+    inventoryOrders,
+    customInventorySections,
+    inventorySectionOverrides,
     lastUpdated: localVersionRef.current
   });
 
@@ -212,6 +275,9 @@ export default function App() {
       analysisStatuses,
       chapterNotes,
       chapterOrders,
+      inventoryOrders,
+      customInventorySections,
+      inventorySectionOverrides,
       lastUpdated: localVersionRef.current
     };
   }, [
@@ -224,7 +290,10 @@ export default function App() {
     sectionOverrides,
     analysisStatuses,
     chapterNotes,
-    chapterOrders
+    chapterOrders,
+    inventoryOrders,
+    customInventorySections,
+    inventorySectionOverrides
   ]);
 
   // Local storage caching
@@ -258,6 +327,15 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(chapterOrders)); } catch (e) {}
   }, [chapterOrders]);
+  useEffect(() => {
+    try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(inventoryOrders)); } catch (e) {}
+  }, [inventoryOrders]);
+  useEffect(() => {
+    try { localStorage.setItem(CUSTOM_INVENTORY_SECTIONS_KEY, JSON.stringify(customInventorySections)); } catch (e) {}
+  }, [customInventorySections]);
+  useEffect(() => {
+    try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(inventorySectionOverrides)); } catch (e) {}
+  }, [inventorySectionOverrides]);
 
   // Global Real-time Multi-User Cloud & Multi-Tab Sync
   useEffect(() => {
@@ -373,6 +451,27 @@ export default function App() {
           return merged;
         });
       }
+      if (cloudData.inventoryOrders !== undefined) {
+        setInventoryOrders(prev => {
+          const merged = { ...prev, ...cloudData.inventoryOrders };
+          try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.customInventorySections !== undefined) {
+        setCustomInventorySections(prev => {
+          const merged = { ...prev, ...cloudData.customInventorySections };
+          try { localStorage.setItem(CUSTOM_INVENTORY_SECTIONS_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
+      if (cloudData.inventorySectionOverrides !== undefined) {
+        setInventorySectionOverrides(prev => {
+          const merged = { ...prev, ...cloudData.inventorySectionOverrides };
+          try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
       setCloudSyncStatus('synced');
     };
 
@@ -388,6 +487,9 @@ export default function App() {
       if (tabState.analysisStatuses) setAnalysisStatuses(tabState.analysisStatuses);
       if (tabState.chapterNotes) setChapterNotes(tabState.chapterNotes);
       if (tabState.chapterOrders) setChapterOrders(tabState.chapterOrders);
+      if (tabState.inventoryOrders) setInventoryOrders(tabState.inventoryOrders);
+      if (tabState.customInventorySections) setCustomInventorySections(tabState.customInventorySections);
+      if (tabState.inventorySectionOverrides) setInventorySectionOverrides(tabState.inventorySectionOverrides);
       setCloudSyncStatus('synced');
     });
 
@@ -424,6 +526,9 @@ export default function App() {
       analysisStatuses: nextState?.analysisStatuses ?? stateRef.current.analysisStatuses,
       chapterNotes: nextState?.chapterNotes ?? stateRef.current.chapterNotes,
       chapterOrders: nextState?.chapterOrders ?? stateRef.current.chapterOrders,
+      inventoryOrders: nextState?.inventoryOrders ?? stateRef.current.inventoryOrders,
+      customInventorySections: nextState?.customInventorySections ?? stateRef.current.customInventorySections,
+      inventorySectionOverrides: nextState?.inventorySectionOverrides ?? stateRef.current.inventorySectionOverrides,
       lastUpdated: newVersion
     };
 
@@ -439,6 +544,9 @@ export default function App() {
     if (nextState?.analysisStatuses) try { localStorage.setItem(ANALYSIS_STATUSES_KEY, JSON.stringify(nextState.analysisStatuses)); } catch (e) {}
     if (nextState?.chapterNotes) try { localStorage.setItem(CHAPTER_NOTES_KEY, JSON.stringify(nextState.chapterNotes)); } catch (e) {}
     if (nextState?.chapterOrders) try { localStorage.setItem(CHAPTER_ORDERS_KEY, JSON.stringify(nextState.chapterOrders)); } catch (e) {}
+    if (nextState?.inventoryOrders) try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(nextState.inventoryOrders)); } catch (e) {}
+    if (nextState?.customInventorySections) try { localStorage.setItem(CUSTOM_INVENTORY_SECTIONS_KEY, JSON.stringify(nextState.customInventorySections)); } catch (e) {}
+    if (nextState?.inventorySectionOverrides) try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(nextState.inventorySectionOverrides)); } catch (e) {}
 
     queueGlobalCloudPush(
       () => fullPayload,
@@ -456,11 +564,99 @@ export default function App() {
     return workStatus[id] || { status: 'todo', priority: 'low', note: '' };
   };
 
+  const getGroupSections = (g: string) => {
+    const baseSections = DATA[g]?.sections || [];
+    const result: { code: string; title: string; chapterNum?: string; chapterTitle?: string; isCustom?: boolean; customId?: string; originalCode?: string }[] = [];
+    
+    baseSections.forEach((s: any) => {
+      const override = inventorySectionOverrides[`${g}::${s.code}`];
+      if (!override?.deleted) {
+        result.push({
+          code: override?.code || s.code,
+          title: override?.title || s.title,
+          chapterNum: s.chapterNum || (s.code ? s.code.split('.')[0] : '1'),
+          chapterTitle: s.chapterTitle || '',
+          originalCode: s.code,
+          isCustom: false
+        });
+      }
+    });
+
+    const customSecs = customInventorySections[g] || [];
+    customSecs.forEach(cs => {
+      const override = inventorySectionOverrides[`${g}::${cs.code}`];
+      if (!override?.deleted) {
+        const inferredChapter = cs.code ? cs.code.split('.')[0] : '1';
+        result.push({
+          code: override?.code || cs.code,
+          title: override?.title || cs.title,
+          chapterNum: inferredChapter,
+          chapterTitle: '',
+          originalCode: cs.code,
+          isCustom: true,
+          customId: cs.id
+        });
+      }
+    });
+
+    return result;
+  };
+
+  const handleAddInventorySection = (g: string, code: string, title: string) => {
+    const trimmedCode = code.trim();
+    const trimmedTitle = title.trim();
+    if (!trimmedCode || !trimmedTitle) return;
+    const newId = String(Date.now());
+    const list = customInventorySections[g] || [];
+    const updatedList = [...list, { id: newId, code: trimmedCode, title: trimmedTitle }];
+    const updatedMap = { ...customInventorySections, [g]: updatedList };
+    setCustomInventorySections(updatedMap);
+    setActiveCode(trimmedCode);
+    setShowAddSectionModal(false);
+    setNewSectionCode('');
+    setNewSectionTitle('');
+    try { localStorage.setItem(CUSTOM_INVENTORY_SECTIONS_KEY, JSON.stringify(updatedMap)); } catch (e) {}
+    triggerCloudSync({ customInventorySections: updatedMap });
+  };
+
+  const handleEditInventorySection = (g: string, originalCode: string, newCode: string, newTitle: string) => {
+    const key = `${g}::${originalCode}`;
+    const current = inventorySectionOverrides[key] || {};
+    const updatedOverrides = {
+      ...inventorySectionOverrides,
+      [key]: { ...current, code: newCode.trim(), title: newTitle.trim() }
+    };
+    setInventorySectionOverrides(updatedOverrides);
+    if (activeCode === originalCode) {
+      setActiveCode(newCode.trim());
+    }
+    setEditingSectionModal(null);
+    try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides)); } catch (e) {}
+    triggerCloudSync({ inventorySectionOverrides: updatedOverrides });
+  };
+
+  const handleDeleteInventorySection = (g: string, code: string) => {
+    const key = `${g}::${code}`;
+    const current = inventorySectionOverrides[key] || {};
+    const updatedOverrides = {
+      ...inventorySectionOverrides,
+      [key]: { ...current, deleted: true }
+    };
+    setInventorySectionOverrides(updatedOverrides);
+    setDeletingSectionCode(null);
+    try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(updatedOverrides)); } catch (e) {}
+    
+    const remaining = getGroupSections(g).filter(s => s.code !== code);
+    if (activeCode === code && remaining.length > 0) {
+      setActiveCode(remaining[0].code);
+    }
+    triggerCloudSync({ inventorySectionOverrides: updatedOverrides });
+  };
+
   const sectionAllRows = (g: string, code: string) => {
     const sec = DATA[g]?.sections?.find((s: any) => s.code === code);
-    if (!sec) return [];
     const rows: any[] = [];
-    if (sec.entries) {
+    if (sec?.entries) {
       sec.entries.forEach((e: any, eIdx: number) => {
         (e.veri || []).forEach((v: any, vIdx: number) => {
           const id = rowId(g, code, eIdx, vIdx);
@@ -470,7 +666,9 @@ export default function App() {
               id, 
               n: override?.n !== undefined ? override.n : v.n, 
               v: override?.v !== undefined ? override.v : v.v, 
-              custom: false 
+              custom: false,
+              eIdx,
+              vIdx
             });
           }
         });
@@ -478,8 +676,27 @@ export default function App() {
     }
     const ck = customKey(g, code);
     (customRows[ck] || []).forEach(c => {
-      rows.push({ id: `custom|${g}|${code}|${c.id}`, n: c.name, v: c.v !== undefined ? c.v : false, custom: true, customId: c.id });
+      rows.push({ 
+        id: `custom|${g}|${code}|${c.id}`, 
+        n: c.name, 
+        v: c.v !== undefined ? c.v : false, 
+        custom: true, 
+        customId: c.id 
+      });
     });
+
+    const order = inventoryOrders[ck];
+    if (order && order.length > 0) {
+      rows.sort((a, b) => {
+        const idxA = order.indexOf(a.id);
+        const idxB = order.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
+    }
+
     return rows;
   };
 
@@ -494,7 +711,7 @@ export default function App() {
   const overallCounts = useMemo(() => {
     let workTotal = 0, workDone = 0, srcVar = 0, srcYok = 0;
     Object.keys(DATA).forEach(g => {
-      DATA[g].sections.forEach((s: any) => {
+      getGroupSections(g).forEach((s: any) => {
         const rows = sectionAllRows(g, s.code);
         workTotal += rows.length;
         workDone += rows.filter(r => getWork(r.id).status === 'done').length;
@@ -505,7 +722,7 @@ export default function App() {
       });
     });
     return { workTotal, workDone, srcVar, srcYok };
-  }, [workStatus, customRows, rowOverrides]);
+  }, [workStatus, customRows, rowOverrides, inventoryOrders, customInventorySections, inventorySectionOverrides]);
 
   const sectionMatches = (g: string, s: any, term: string) => {
     const t = term.toLowerCase();
@@ -514,14 +731,54 @@ export default function App() {
     return rows.some(r => r.n.toLowerCase().includes(t));
   };
 
-  const handleAddCustomRow = (g: string, code: string) => {
-    if (!newRowName.trim()) return;
+  const handleAddCustomRow = (g: string, code: string, rowName?: string) => {
+    const nameToAdd = (rowName !== undefined ? rowName : newRowName).trim();
+    if (!nameToAdd) return;
     const ck = customKey(g, code);
-    const newList = [...(customRows[ck] || []), { id: Date.now(), name: newRowName.trim(), v: false }];
-    const updatedCustomRows = { ...customRows, [ck]: newList };
+    const newId = Date.now();
+    const newItem = { id: newId, name: nameToAdd, v: false };
+    const currentList = customRows[ck] || [];
+    const updatedList = [...currentList, newItem];
+    const updatedCustomRows = { ...customRows, [ck]: updatedList };
+    
+    // Also append to order
+    const fullCustomId = `custom|${g}|${code}|${newId}`;
+    const existingOrder = inventoryOrders[ck] || sectionAllRows(g, code).map(r => r.id);
+    const newOrder = [...existingOrder, fullCustomId];
+    const updatedOrders = { ...inventoryOrders, [ck]: newOrder };
+
     setCustomRows(updatedCustomRows);
+    setInventoryOrders(updatedOrders);
     setNewRowName('');
-    triggerCloudSync({ customRows: updatedCustomRows });
+    try {
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify(updatedCustomRows));
+      localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(updatedOrders));
+    } catch (e) {}
+    triggerCloudSync({ customRows: updatedCustomRows, inventoryOrders: updatedOrders });
+  };
+
+  const handleReorderInventoryRows = (g: string, code: string, newOrderIds: string[]) => {
+    const ck = customKey(g, code);
+    const updatedOrders = { ...inventoryOrders, [ck]: newOrderIds };
+    setInventoryOrders(updatedOrders);
+    try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(updatedOrders)); } catch (e) {}
+    triggerCloudSync({ inventoryOrders: updatedOrders });
+  };
+
+  const handleMoveInventoryRow = (g: string, code: string, rowId: string, direction: 'up' | 'down') => {
+    const rows = sectionAllRows(g, code);
+    const currentIds = rows.map(r => r.id);
+    const index = currentIds.indexOf(rowId);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === currentIds.length - 1) return;
+
+    const newIds = [...currentIds];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const [moved] = newIds.splice(index, 1);
+    newIds.splice(targetIndex, 0, moved);
+
+    handleReorderInventoryRows(g, code, newIds);
   };
 
   const handleUpdateWork = (id: string, updates: Partial<WorkStatus>) => {
@@ -553,21 +810,48 @@ export default function App() {
   const handleDeleteRow = (id: string) => {
     let updatedCustom = customRows;
     let updatedOverrides = rowOverrides;
+    let gKey = activeGroup;
+    let codeKey = activeCode;
+
     if (id.startsWith('custom|')) {
       const [, g, code, customIdStr] = id.split('|');
+      gKey = g;
+      codeKey = code;
       const ck = customKey(g, code);
       const newList = (customRows[ck] || []).filter(c => String(c.id) !== customIdStr);
       updatedCustom = { ...customRows, [ck]: newList };
       setCustomRows(updatedCustom);
     } else {
+      const parts = id.split('|');
+      if (parts.length >= 2) {
+        gKey = parts[0];
+        codeKey = parts[1];
+      }
       const current = rowOverrides[id] || {};
       updatedOverrides = { ...rowOverrides, [id]: { ...current, deleted: true } };
       setRowOverrides(updatedOverrides);
     }
+
+    // Also remove from inventory orders
+    const ck = customKey(gKey, codeKey);
+    const currentOrder = inventoryOrders[ck];
+    let updatedOrders = inventoryOrders;
+    if (currentOrder) {
+      const filteredOrder = currentOrder.filter(itemId => itemId !== id);
+      updatedOrders = { ...inventoryOrders, [ck]: filteredOrder };
+      setInventoryOrders(updatedOrders);
+      try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(updatedOrders)); } catch (e) {}
+    }
+
     const updatedWork = { ...workStatus };
     delete updatedWork[id];
     setWorkStatus(updatedWork);
-    triggerCloudSync({ workStatus: updatedWork, customRows: updatedCustom, rowOverrides: updatedOverrides });
+    triggerCloudSync({ 
+      workStatus: updatedWork, 
+      customRows: updatedCustom, 
+      rowOverrides: updatedOverrides,
+      inventoryOrders: updatedOrders
+    });
   };
 
   const handleSaveAnaliz = (entryId: string, val: string) => {
@@ -971,7 +1255,8 @@ export default function App() {
   };
 
   const activeGroupData = DATA[activeGroup];
-  const activeSec = activeGroupData?.sections?.find((s: any) => s.code === activeCode) || activeGroupData?.sections?.[0];
+  const activeGroupSections = getGroupSections(activeGroup);
+  const activeSec = activeGroupSections.find((s) => s.code === activeCode) || activeGroupSections[0];
   const activeCnt = activeSec ? sectionCounts(activeGroup, activeSec.code) : { total: 0, done: 0, gaps: 0 };
   const pctDone = activeCnt.total ? (activeCnt.done / activeCnt.total * 100) : 0;
 
@@ -1075,8 +1360,9 @@ export default function App() {
             className={`group-pill-btn ${activeGroup === g ? 'active' : ''}`}
             onClick={() => {
               setActiveGroup(g);
-              if (DATA[g]?.sections?.[0]) {
-                setActiveCode(DATA[g].sections[0].code);
+              const groupSecs = getGroupSections(g);
+              if (groupSecs[0]) {
+                setActiveCode(groupSecs[0].code);
               }
             }}
           >
@@ -1112,175 +1398,230 @@ export default function App() {
           onSearchChange={setSearchTerm}
         />
       ) : (
-        /* Tab 1: Veri Envanteri & Analizler */
-        <div className="layout" id="inventory-layout">
-          {/* Sidebar */}
-          <nav className="sidebar" id="inventory-sidebar">
-            <div className="sidebar-title-bar">
-              <span>{activeGroupData.label} Bölümleri</span>
-            </div>
-            {activeGroupData.sections.map((s: any) => {
-              const cnt = sectionCounts(activeGroup, s.code);
-              const isActive = s.code === activeCode;
-              return (
-                <div
-                  key={s.code}
-                  className={`sidebar-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveCode(s.code)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="mono" style={{ fontWeight: 700 }}>{s.code}</span>
-                    <span>{s.title}</span>
-                  </div>
-                  <span className="mono" style={{ fontSize: '11px', opacity: 0.8 }}>
-                    {cnt.done}/{cnt.total}
-                  </span>
+        /* Tab 1: Veri Envanteri & Analizler (Mekânsal Afet & Risk Matrisleri: 4, 5, 6, 8) */
+        <div style={{ padding: '20px 24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+          <SpatialHazardInventory
+            activeGroup={activeGroup}
+            data={DATA}
+            workStatus={workStatus}
+            rowOverrides={rowOverrides}
+            customRows={customRows}
+            onUpdateWorkStatus={handleUpdateWork}
+            onUpdateRowOverride={handleUpdateRow}
+            onAddCustomRow={(g, secCode, name, compCode) => {
+              const fullKey = compCode ? `${g}::${secCode}::${compCode}` : `${g}::${secCode}`;
+              const newId = Date.now();
+              const newItem = { id: newId, name, v: true };
+              const currentList = customRows[fullKey] || [];
+              const updatedList = [...currentList, newItem];
+              const updatedCustomRows = { ...customRows, [fullKey]: updatedList };
+              setCustomRows(updatedCustomRows);
+              try {
+                localStorage.setItem(CUSTOM_KEY, JSON.stringify(updatedCustomRows));
+              } catch (e) {}
+              triggerCloudSync({ customRows: updatedCustomRows });
+            }}
+            onDeleteRow={handleDeleteRow}
+          />
+        </div>
+      )}
+
+      {/* Modal: Add Inventory 2nd Degree Section */}
+      {showAddSectionModal && (
+        <div className="custom-modal-backdrop" onClick={() => setShowAddSectionModal(false)}>
+          <div className="custom-modal-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="custom-modal-header">
+              <div className="cmh-title-row">
+                <div className="cmh-icon-badge">
+                  <Plus size={16} />
                 </div>
-              );
-            })}
-          </nav>
-
-          {/* Main Content Area */}
-          <main className="content-area" id="inventory-main-content">
-            {activeSec ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div>
-                    <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--ink)' }}>
-                      {activeSec.code} {activeSec.title}
-                    </h2>
-                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                      {activeCnt.done}/{activeCnt.total} Tamamlandı (%{Math.round(pctDone)}) · {activeCnt.gaps} Eksik Veri Kaynağı
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Yeni veri kalemi adı…"
-                      value={newRowName}
-                      onChange={e => setNewRowName(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') handleAddCustomRow(activeGroup, activeSec.code);
-                      }}
-                      style={{
-                        padding: '6px 10px',
-                        fontSize: '12px',
-                        border: '1px solid var(--line-strong)',
-                        borderRadius: '4px',
-                        minWidth: '220px'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddCustomRow(activeGroup, activeSec.code)}
-                      style={{
-                        padding: '6px 12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        background: '#0F172A',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + Veri Ekle
-                    </button>
-                  </div>
-                </div>
-
-                <div className="table-panel">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '45%' }}>Gerekli Veri Kalemi / Katman</th>
-                        <th style={{ width: '15%' }}>Kaynak Durumu</th>
-                        <th style={{ width: '20%' }}>İş Durumu</th>
-                        <th style={{ width: '20%' }}>Not / Açıklama</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sectionAllRows(activeGroup, activeSec.code).map((row: any) => {
-                        const work = getWork(row.id);
-                        return (
-                          <tr key={row.id}>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                <span style={{ fontWeight: 500 }}>{row.n}</span>
-                                {row.custom && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteRow(row.id)}
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: '#DC2626',
-                                      cursor: 'pointer',
-                                      fontSize: '11px',
-                                      fontWeight: 600
-                                    }}
-                                  >
-                                    Sil
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateRow(row.id, { v: !row.v })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                              >
-                                {row.v ? (
-                                  <span className="var-badge">✓ Veri Var</span>
-                                ) : (
-                                  <span className="yok-badge">✗ Veri Yok</span>
-                                )}
-                              </button>
-                            </td>
-                            <td>
-                              <select
-                                value={work.status}
-                                onChange={e => handleUpdateWork(row.id, { status: e.target.value })}
-                                style={{
-                                  padding: '4px 8px',
-                                  fontSize: '12px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--line-strong)',
-                                  background: work.status === 'done' ? '#ECFDF5' : work.status === 'progress' ? '#EFF6FF' : '#FFFFFF',
-                                  color: work.status === 'done' ? '#065F46' : work.status === 'progress' ? '#1E40AF' : 'var(--ink)'
-                                }}
-                              >
-                                <option value="todo">Başlanmadı</option>
-                                <option value="progress">Devam Ediyor</option>
-                                <option value="done">Tamamlandı</option>
-                              </select>
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                placeholder="Açıklama notu…"
-                                value={work.note || ''}
-                                onChange={e => handleUpdateWork(row.id, { note: e.target.value })}
-                                style={{
-                                  width: '100%',
-                                  padding: '4px 6px',
-                                  fontSize: '12px',
-                                  border: '1px solid var(--line)',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div>
+                  <h3 className="custom-modal-title">{activeGroupData.label} — 2. Derece Bölüm Ekle</h3>
+                  <div className="custom-modal-subtitle">Yeni bölüm kodu ve başlığını belirleyin</div>
                 </div>
               </div>
-            ) : null}
-          </main>
+              <button 
+                type="button" 
+                className="custom-modal-close" 
+                onClick={() => setShowAddSectionModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="custom-modal-body">
+              <div className="form-field-group">
+                <label className="form-label">
+                  Bölüm Kodu <span className="req-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input code-input"
+                  placeholder="Örn: 4.5 veya 4.6"
+                  value={newSectionCode}
+                  onChange={e => setNewSectionCode(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="form-label">
+                  Bölüm Başlığı <span className="req-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Örn: Bisiklet ve Mikromobilite Ağı"
+                  value={newSectionTitle}
+                  onChange={e => setNewSectionTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleAddInventorySection(activeGroup, newSectionCode, newSectionTitle);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="custom-modal-footer">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={() => setShowAddSectionModal(false)}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                className="btn-modal-submit"
+                disabled={!newSectionCode.trim() || !newSectionTitle.trim()}
+                onClick={() => handleAddInventorySection(activeGroup, newSectionCode, newSectionTitle)}
+              >
+                Bölüm Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Inventory Section */}
+      {editingSectionModal && (
+        <div className="custom-modal-backdrop" onClick={() => setEditingSectionModal(null)}>
+          <div className="custom-modal-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="custom-modal-header">
+              <div className="cmh-title-row">
+                <div className="cmh-icon-badge">
+                  <Pencil size={16} />
+                </div>
+                <div>
+                  <h3 className="custom-modal-title">Bölüm Başlığını Düzenle</h3>
+                  <div className="custom-modal-subtitle">{editingSectionModal.originalCode} kodlu bölüm</div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="custom-modal-close" 
+                onClick={() => setEditingSectionModal(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="custom-modal-body">
+              <div className="form-field-group">
+                <label className="form-label">
+                  Bölüm Kodu <span className="req-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input code-input"
+                  value={editingSectionModal.code}
+                  onChange={e => setEditingSectionModal({ ...editingSectionModal, code: e.target.value })}
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="form-label">
+                  Bölüm Başlığı <span className="req-star">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editingSectionModal.title}
+                  onChange={e => setEditingSectionModal({ ...editingSectionModal, title: e.target.value })}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      handleEditInventorySection(
+                        activeGroup,
+                        editingSectionModal.originalCode,
+                        editingSectionModal.code,
+                        editingSectionModal.title
+                      );
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="custom-modal-footer">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={() => setEditingSectionModal(null)}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                className="btn-modal-submit"
+                disabled={!editingSectionModal.code.trim() || !editingSectionModal.title.trim()}
+                onClick={() => {
+                  handleEditInventorySection(
+                    activeGroup,
+                    editingSectionModal.originalCode,
+                    editingSectionModal.code,
+                    editingSectionModal.title
+                  );
+                }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Section Confirmation */}
+      {deletingSectionCode && (
+        <div className="custom-modal-backdrop" onClick={() => setDeletingSectionCode(null)}>
+          <div className="custom-modal-dialog confirm-dialog" onClick={e => e.stopPropagation()}>
+            <div className="confirm-modal-header">
+              <div className="confirm-icon-box variant-danger">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="confirm-title">Bölüm Silinsin mi?</h3>
+                <p className="confirm-message">
+                  <strong>{deletingSectionCode}</strong> kodlu bölümü ve altındaki tüm veri kalemlerini kaldırmak istediğinize emin misiniz?
+                </p>
+              </div>
+            </div>
+            <div className="confirm-modal-actions">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={() => setDeletingSectionCode(null)}
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                className="btn-modal-confirm variant-danger"
+                onClick={() => handleDeleteInventorySection(activeGroup, deletingSectionCode)}
+              >
+                Evet, Sil
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

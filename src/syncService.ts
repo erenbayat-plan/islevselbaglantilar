@@ -51,6 +51,9 @@ export interface AppState {
   analysisStatuses?: Record<string, 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede'>;
   chapterNotes?: Record<string, string>;
   chapterOrders?: Record<string, string[]>;
+  inventoryOrders?: Record<string, string[]>;
+  customInventorySections?: Record<string, { code: string; title: string; id: string }[]>;
+  inventorySectionOverrides?: Record<string, { code?: string; title?: string; deleted?: boolean }>;
   lastUpdated: number;
 }
 
@@ -112,6 +115,7 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
         analysisStatuses: data.analysisStatuses || {},
         chapterNotes: data.chapterNotes || {},
         chapterOrders: data.chapterOrders || {},
+        inventoryOrders: data.inventoryOrders || {},
         lastUpdated: Number(data.lastUpdated) || 0
       };
     }
@@ -133,6 +137,7 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
     analysisStatuses: state.analysisStatuses || {},
     chapterNotes: state.chapterNotes || {},
     chapterOrders: state.chapterOrders || {},
+    inventoryOrders: state.inventoryOrders || {},
     lastUpdated: state.lastUpdated || Date.now()
   };
 
@@ -183,6 +188,7 @@ export function subscribeToCloudState(
           analysisStatuses: data.analysisStatuses || {},
           chapterNotes: data.chapterNotes || {},
           chapterOrders: data.chapterOrders || {},
+          inventoryOrders: data.inventoryOrders || {},
           lastUpdated: Number(data.lastUpdated) || 0
         });
       }
