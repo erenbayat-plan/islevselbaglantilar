@@ -65,6 +65,32 @@ function matchesComponent(itemText: string, compCode: string, group: string): bo
       return (
         text.includes('karayolu') ||
         text.includes('road') ||
+        text.includes('otoyol') ||
+        text.includes('devlet yolu') ||
+        text.includes('devletyol') ||
+        text.includes('ula_mb_otoyol') ||
+        text.includes('ula_mb_devletyol') ||
+        text.includes('ula_yol_agi') ||
+        text.includes('ula_yogt') ||
+        text.includes('ula_yolustu') ||
+        text.includes('ula_yoldisi') ||
+        text.includes('ula_pd_') ||
+        text.includes('ula_yaya') ||
+        text.includes('ula_mikromobilite') ||
+        text.includes('ula_bisiklet') ||
+        text.includes('ula_mevcut') ||
+        text.includes('ula_insaat') ||
+        text.includes('ula_utk') ||
+        text.includes('ula_zon') ||
+        text.includes('ula_top_arzu') ||
+        text.includes('ula_tt_arzu') ||
+        text.includes('ula_oo_arzu') ||
+        text.includes('otopark') ||
+        text.includes('yaya') ||
+        text.includes('bisiklet') ||
+        text.includes('mikromobilite') ||
+        text.includes('arzu') ||
+        text.includes('zon') ||
         text.includes('acil ulaşım') ||
         text.includes('auy') ||
         text.includes('köprü') ||
@@ -96,6 +122,24 @@ function matchesComponent(itemText: string, compCode: string, group: string): bo
         text.includes('iskele') ||
         text.includes('terminal') ||
         text.includes('otogar') ||
+        text.includes('durak') ||
+        text.includes('erişim') ||
+        text.includes('erisilebilirlik') ||
+        text.includes('kruvaziyer') ||
+        text.includes('havalimanı') ||
+        text.includes('ula_rayli_sistem_istasyonlari') ||
+        text.includes('ula_mb_demiryolu_istasyonlari') ||
+        text.includes('ula_denizyolu_iskeleler') ||
+        text.includes('ula_mb_iskele') ||
+        text.includes('ula_mb_otogarlar') ||
+        text.includes('ula_metrobus_duraklari') ||
+        text.includes('ula_iett_duraklar') ||
+        text.includes('ula_taksi_dolmus_durak') ||
+        text.includes('ula_mb_kruvaziyer') ||
+        text.includes('ula_mb_havalimanlari') ||
+        text.includes('ula_metrobus_erisilebilirlik') ||
+        text.includes('ula_raylisistem_erisilebilirlik') ||
+        text.includes('ula_pl_rayli_erisilebilirlik') ||
         text.includes('şehiriçi') ||
         text.includes('dezim') ||
         text.includes('tsunami') ||
@@ -110,10 +154,16 @@ function matchesComponent(itemText: string, compCode: string, group: string): bo
         text.includes('toplu taşıma') ||
         text.includes('otobüs') ||
         text.includes('metrobüs') ||
+        text.includes('minibüs') ||
         text.includes('bus') ||
         text.includes('raylı') ||
         text.includes('metro') ||
         text.includes('tramvay') ||
+        text.includes('marmaray') ||
+        text.includes('füniküler') ||
+        text.includes('teleferik') ||
+        text.includes('yht') ||
+        text.includes('konvansiyonel') ||
         text.includes('hat') ||
         text.includes('sefer') ||
         text.includes('yolcu') ||
@@ -121,81 +171,124 @@ function matchesComponent(itemText: string, compCode: string, group: string): bo
         text.includes('araç') ||
         text.includes('filo') ||
         text.includes('depo') ||
-        text.includes('garaj')
-      );
-    }
-    if (compCode === '3.4') {
-      // Demiryolu ve Raylı Sistem Hatları
-      return (
-        text.includes('raylı') ||
-        text.includes('metro') ||
-        text.includes('tren') ||
-        text.includes('tcdd') ||
-        text.includes('marmaray') ||
-        text.includes('tünel') ||
-        text.includes('istasyon') ||
-        text.includes('enerji') ||
-        text.includes('cer')
-      );
-    }
-    if (compCode === '3.5') {
-      // Denizyolu Ulaşımı
-      return (
-        text.includes('deniz') ||
-        text.includes('iskele') ||
-        text.includes('vapur') ||
-        text.includes('motor') ||
-        text.includes('tsunami') ||
-        text.includes('dalga') ||
-        text.includes('kıyı') ||
-        text.includes('seviye')
-      );
-    }
-    if (compCode === '3.6') {
-      // Havayolu Ulaşımı
-      return (
-        text.includes('havalimanı') ||
-        text.includes('havaalanı') ||
-        text.includes('pist') ||
-        text.includes('terminal') ||
-        text.includes('hava')
+        text.includes('garaj') ||
+        text.includes('ula_rayli_sistem_hatlari') ||
+        text.includes('ula_mb_yht_hatti') ||
+        text.includes('ula_mb_pl_yht_hatti') ||
+        text.includes('ula_mb_konvansiyonel_hat') ||
+        text.includes('ula_iett_anaguzergahlar') ||
+        text.includes('ula_iett_garaj') ||
+        text.includes('ula_minibus_hatlari') ||
+        text.includes('ula_denizyolu_hatlari') ||
+        text.includes('ula_mb_dy_guzergah')
       );
     }
   }
 
-  if (group === 'altyapi') {
+  if (group === 'altyapi' || group === 'teknikaltyapi') {
     if (compCode === '3.1') {
-      // Su ve Kanalizasyon (İSKİ)
-      return (
-        text.includes('su') ||
-        text.includes('iski') ||
-        text.includes('baraj') ||
-        text.includes('arıtma') ||
-        text.includes('boru') ||
-        text.includes('kanal') ||
-        text.includes('terfi') ||
-        text.includes('depo') ||
-        text.includes('taşkın') ||
-        text.includes('kuraklık')
-      );
-    }
-    if (compCode === '3.2') {
-      // Enerji (Elektrik & Doğalgaz - BEDAŞ, AYEDAŞ, İGDAŞ)
+      // Enerji Altyapıları (BOTAŞ, İGDAŞ, TEİAŞ, BEDAŞ, AYEDAŞ, RES, Şarj vb.)
       return (
         text.includes('enerji') ||
         text.includes('elektrik') ||
         text.includes('doğalgaz') ||
+        text.includes('doğal gaz') ||
+        text.includes('botaş') ||
         text.includes('igdaş') ||
         text.includes('trafo') ||
         text.includes('şebeke') ||
         text.includes('boru') ||
         text.includes('rms') ||
         text.includes('hat') ||
-        text.includes('kesinti')
+        text.includes('kesinti') ||
+        text.includes('res') ||
+        text.includes('türbin') ||
+        text.includes('şarj') ||
+        text.includes('petrol') ||
+        text.includes('lpg') ||
+        text.includes('tay_botas_') ||
+        text.includes('tay_dgaz_') ||
+        text.includes('tay_dogalgaz') ||
+        text.includes('tay_elek_') ||
+        text.includes('tay_petrol_') ||
+        text.includes('tay_lpg_') ||
+        text.includes('tay_res_') ||
+        text.includes('tay_mrmr_') ||
+        text.includes('tay_ulusal_')
+      );
+    }
+    if (compCode === '3.2') {
+      // Su ve Kanalizasyon (İSKİ, Barajlar, Göletler, İsale, Depolar, Terfi)
+      return (
+        text.includes('su') ||
+        text.includes('iski') ||
+        text.includes('baraj') ||
+        text.includes('gölet') ||
+        text.includes('kuyu') ||
+        text.includes('dere') ||
+        text.includes('isale') ||
+        text.includes('içmesuyu') ||
+        text.includes('temizsu') ||
+        text.includes('arıtma') ||
+        text.includes('terfi') ||
+        text.includes('depo') ||
+        text.includes('kolektor') ||
+        text.includes('numune') ||
+        text.includes('sulama') ||
+        text.includes('havza') ||
+        text.includes('kuraklık') ||
+        text.includes('tay_barajlar') ||
+        text.includes('tay_goletler') ||
+        text.includes('tay_kuyu') ||
+        text.includes('tay_dereler') ||
+        text.includes('tay_icmesuyu_') ||
+        text.includes('tay_iski_') ||
+        text.includes('tay_havzalardayapi')
       );
     }
     if (compCode === '3.3') {
-      // Haberleşme ve Telekomünikasyon
+      // Atık ve Drenaj Altyapıları (AAT, Deşarj, Yağmursuyu, Dere Bantları, Katı Atık, Hafriyat)
+      return (
+        text.includes('atık') ||
+        text.includes('çöp') ||
+        text.includes('katı atık') ||
+        text.includes('atıksu') ||
+        text.includes('aat') ||
+        text.includes('deşarj') ||
+        text.includes('drenaj') ||
+        text.includes('yağmur') ||
+        text.includes('yağmursuyu') ||
+        text.includes('taşkın') ||
+        text.includes('dere işletme') ||
+        text.includes('kanal') ||
+        text.includes('hafriyat') ||
+        text.includes('istaç') ||
+        text.includes('tehlikeli') ||
+        text.includes('aeee') ||
+        text.includes('geri kazanım') ||
+        text.includes('çevre') ||
+        text.includes('tay_atiksu_') ||
+        text.includes('tay_aat_') ||
+        text.includes('tay_pln_aat_') ||
+        text.includes('tay_desarj_') ||
+        text.includes('tay_yagmurs_') ||
+        text.includes('tay_yagmur_') ||
+        text.includes('tay_ygmr_') ||
+        text.includes('tay_avr_dere_') ||
+        text.includes('tay_and_dere_') ||
+        text.includes('tay_dere_taskin') ||
+        text.includes('tay_gerikazanim') ||
+        text.includes('tay_katiatik_') ||
+        text.includes('tay_atik_') ||
+        text.includes('tay_tehlikeliatk_') ||
+        text.includes('tay_aeee_') ||
+        text.includes('tay_aktf_hafriyat') ||
+        text.includes('tay_psf_hafriyat') ||
+        text.includes('tay_hafriyatyntm')
+      );
+    }
+    if (compCode === '3.4') {
+      // Bilgi, İletişim ve Acil Durum Altyapıları
       return (
         text.includes('haberleşme') ||
         text.includes('iletişim') ||
@@ -203,69 +296,107 @@ function matchesComponent(itemText: string, compCode: string, group: string): bo
         text.includes('fiber') ||
         text.includes('santral') ||
         text.includes('veri') ||
-        text.includes('telekom')
-      );
-    }
-    if (compCode === '3.4') {
-      // Atık Yönetimi ve Çevre Altyapısı
-      return (
-        text.includes('atık') ||
-        text.includes('çöp') ||
-        text.includes('katı atık') ||
-        text.includes('istasyon') ||
-        text.includes('depolama') ||
-        text.includes('çevre')
+        text.includes('data center') ||
+        text.includes('telekom') ||
+        text.includes('sağlık') ||
+        text.includes('hastane') ||
+        text.includes('telsiz') ||
+        text.includes('tay_veri_merkezleri') ||
+        text.includes('tay_sagliktesis_')
       );
     }
   }
 
   if (group === 'lojistik') {
     if (compCode === '3.1') {
-      // Lojistik Merkezler ve Depolar
-      return (
-        text.includes('lojistik') ||
-        text.includes('depo') ||
-        text.includes('antrepo') ||
-        text.includes('ambar') ||
-        text.includes('dağıtım') ||
-        text.includes('soğuk hava') ||
-        text.includes('stok')
-      );
-    }
-    if (compCode === '3.2') {
-      // Yük Taşımacılığı Koridorları
+      // Kritik Lojistik Ulaşım Ağları (Karayolu, Demiryolu, Havayolu, Denizyolu)
       return (
         text.includes('yük') ||
+        text.includes('kargo') ||
         text.includes('koridor') ||
         text.includes('tır') ||
         text.includes('kamyon') ||
+        text.includes('havalimanı') ||
+        text.includes('gros ton') ||
+        text.includes('gemi') ||
+        text.includes('elleçleme') ||
+        text.includes('ro-ro') ||
+        text.includes('liman') ||
+        text.includes('rıhtım') ||
+        text.includes('konteyner') ||
+        text.includes('tcdd') ||
         text.includes('karayolu') ||
         text.includes('demiryolu') ||
-        text.includes('ro-ro')
+        text.includes('loj_tcdd_yuk_') ||
+        text.includes('loj_havalimanı_yuk') ||
+        text.includes('loj_gros_ton') ||
+        text.includes('loj_gemi_sayisi') ||
+        text.includes('loj_konteyner_yuk') ||
+        text.includes('loj_yuk_ellecleme') ||
+        text.includes('loj_ro-ro') ||
+        text.includes('loj_marmara_bolgesi_liman') ||
+        text.includes('lojistik_limanlar') ||
+        text.includes('marmara_havalimanlari')
+      );
+    }
+    if (compCode === '3.2') {
+      // Kritik Lojistik Odakları (OSB, Sanayi, Gebze, Haller, Serbest Bölgeler, Nakliye Firmaları)
+      return (
+        text.includes('lojistik') ||
+        text.includes('osb') ||
+        text.includes('organize sanayi') ||
+        text.includes('sanayi') ||
+        text.includes('gebze') ||
+        text.includes('hal') ||
+        text.includes('haller') ||
+        text.includes('kuru gıda') ||
+        text.includes('sebze') ||
+        text.includes('meyve') ||
+        text.includes('su ürünleri') ||
+        text.includes('serbest bölge') ||
+        text.includes('nakliye') ||
+        text.includes('çdp') ||
+        text.includes('haller_2025') ||
+        text.includes('marmara_osb_') ||
+        text.includes('sanayi_alan_') ||
+        text.includes('kocaeli_gebze_sanayi') ||
+        text.includes('loj_anadolu_yakası_osb') ||
+        text.includes('loj_kimya_osb') ||
+        text.includes('loj_deri_osb') ||
+        text.includes('loj_tuzla_osb') ||
+        text.includes('loj_birlik_osb') ||
+        text.includes('loj_dudullu_osb') ||
+        text.includes('loj_beylikdüzü_osb') ||
+        text.includes('loj_ikitelli_osb') ||
+        text.includes('marmara_serbest_bolgeler') ||
+        text.includes('cdp_2009_alan') ||
+        text.includes('nakliye_firma')
       );
     }
     if (compCode === '3.3') {
-      // Limanlar ve Gümrük Sahaları
+      // Kritik Lojistik Terminaller & Gümrük Merkezleri
       return (
-        text.includes('liman') ||
+        text.includes('terminal') ||
+        text.includes('yük terminali') ||
         text.includes('gümrük') ||
-        text.includes('konteyner') ||
-        text.includes('rıhtım') ||
-        text.includes('ro-ro') ||
-        text.includes('iskele') ||
-        text.includes('tsunami')
-      );
-    }
-    if (compCode === '3.4') {
-      // Kritik Tedarik Zinciri ve Toptancı Halleri
-      return (
-        text.includes('tedarik') ||
-        text.includes('hal') ||
-        text.includes('toptancı') ||
-        text.includes('gıda') ||
-        text.includes('yakıt') ||
-        text.includes('akaryakıt') ||
-        text.includes('acil yardım')
+        text.includes('gumruk') ||
+        text.includes('antrepo') ||
+        text.includes('ithalat') ||
+        text.includes('ihracat') ||
+        text.includes('parlayıcı') ||
+        text.includes('yanıcı') ||
+        text.includes('patlayıcı') ||
+        text.includes('depo') ||
+        text.includes('ambar') ||
+        text.includes('soğuk hava') ||
+        text.includes('stok') ||
+        text.includes('dolum') ||
+        text.includes('tır parkı') ||
+        text.includes('yuk_terminalleri_2025') ||
+        text.includes('gumruk_mudurlukleri_2025') ||
+        text.includes('loj_istanbul_gumruk_') ||
+        text.includes('loj_istanbul_parlayıcı_depolar') ||
+        text.includes('yanici_patlayici_depo_2025')
       );
     }
   }
@@ -349,7 +480,8 @@ export const SpatialHazardInventory: React.FC<SpatialHazardInventoryProps> = ({
   // Compute stats and items for a specific (Component x Hazard) cell
   const getCellData = (compCode: string, hazardCode: string) => {
     const hazardSec = sections.find((s: any) => s.code === hazardCode);
-    if (!hazardSec) return { items: [], total: 0, available: 0, gaps: 0, done: 0 };
+    const compSec = sections.find((s: any) => s.code === compCode);
+    if (!hazardSec && !compSec) return { items: [], total: 0, available: 0, gaps: 0, done: 0 };
 
     const items: any[] = [];
     let total = 0;
@@ -357,49 +489,107 @@ export const SpatialHazardInventory: React.FC<SpatialHazardInventoryProps> = ({
     let gaps = 0;
     let done = 0;
 
-    // Base data items
-    (hazardSec.entries || []).forEach((e: any, eIdx: number) => {
-      (e.veri || []).forEach((v: any, vIdx: number) => {
-        const isMatched = matchesComponent(v.n, compCode, activeGroup);
-        if (!isMatched) return;
+    // 1. Primary: All official Geographic Database (GIS) Layers belonging to this Critical Component
+    if (compSec) {
+      (compSec.entries || []).forEach((e: any, eIdx: number) => {
+        (e.veri || []).forEach((v: any, vIdx: number) => {
+          const id = `${activeGroup}|comp_gis|${compCode}|${hazardCode}|${eIdx}|${vIdx}`;
+          const override = rowOverrides[id];
+          if (override?.deleted) return;
 
-        const id = `${activeGroup}|${hazardCode}|${eIdx}|${vIdx}`;
-        const override = rowOverrides[id];
-        if (override?.deleted) return;
+          const name = override?.n !== undefined ? override.n : v.n;
+          const hasData = override?.v !== undefined ? override.v : v.v;
+          const st = workStatus[id]?.status || 'todo';
+          const priority = workStatus[id]?.priority || 'normal';
+          const note = workStatus[id]?.note || '';
 
-        const name = override?.n !== undefined ? override.n : v.n;
-        const hasData = override?.v !== undefined ? override.v : v.v;
-        const st = workStatus[id]?.status || 'todo';
-        const priority = workStatus[id]?.priority || 'normal';
-        const note = workStatus[id]?.note || '';
+          total++;
+          if (hasData) available++;
+          else gaps++;
 
-        total++;
-        if (hasData) available++;
-        else gaps++;
+          if (st === 'done') done++;
 
-        if (st === 'done') done++;
-
-        items.push({
-          id,
-          name,
-          hasData,
-          status: st,
-          priority,
-          note,
-          isCustom: false,
-          analiz: e.analiz || e.sartname || '',
-          sartname: e.sartname || ''
+          items.push({
+            id,
+            name,
+            hasData,
+            status: st,
+            priority,
+            note,
+            isCustom: false,
+            layerType: 'gis',
+            analiz: `${hazardSec?.title || 'Afet'} Maruziyet ve Hasar Analizi`,
+            sartname: `${compSec.code} ${compSec.title}`,
+            compCode
+          });
         });
       });
-    });
+    }
 
-    // Custom items added for this section & component
+    // 2. Secondary: Hazard Scenario, Damage & Overlay layers from the Hazard Section
+    if (hazardSec) {
+      (hazardSec.entries || []).forEach((e: any, eIdx: number) => {
+        (e.veri || []).forEach((v: any, vIdx: number) => {
+          // Avoid duplicate display if name already exists
+          if (items.some(it => it.name.trim().toLowerCase() === v.n.trim().toLowerCase())) return;
+
+          const isMatched = matchesComponent(v.n, compCode, activeGroup);
+          const isGeneralHazard = 
+            v.n.toLowerCase().includes('dezim') || 
+            v.n.toLowerCase().includes('senaryo') || 
+            v.n.toLowerCase().includes('olasılıksal') || 
+            v.n.toLowerCase().includes('deterministik') ||
+            v.n.toLowerCase().includes('pga') ||
+            v.n.toLowerCase().includes('tehlike sentezi') ||
+            v.n.toLowerCase().includes('duyarlılık') ||
+            v.n.toLowerCase().includes('taşkın') ||
+            v.n.toLowerCase().includes('tsunami') ||
+            v.n.toLowerCase().includes('heyelan') ||
+            v.n.toLowerCase().includes('yangın') ||
+            v.n.toLowerCase().includes('sıcaklık');
+
+          if (!isMatched && !isGeneralHazard) return;
+
+          const id = `${activeGroup}|hazard_ovl|${hazardCode}|${compCode}|${eIdx}|${vIdx}`;
+          const override = rowOverrides[id];
+          if (override?.deleted) return;
+
+          const name = override?.n !== undefined ? override.n : v.n;
+          const hasData = override?.v !== undefined ? override.v : v.v;
+          const st = workStatus[id]?.status || 'todo';
+          const priority = workStatus[id]?.priority || 'normal';
+          const note = workStatus[id]?.note || '';
+
+          total++;
+          if (hasData) available++;
+          else gaps++;
+
+          if (st === 'done') done++;
+
+          items.push({
+            id,
+            name,
+            hasData,
+            status: st,
+            priority,
+            note,
+            isCustom: false,
+            layerType: 'hazard',
+            analiz: e.analiz || e.sartname || `${hazardSec.title} Analiz Modeli`,
+            sartname: e.sartname || hazardSec.title,
+            compCode
+          });
+        });
+      });
+    }
+
+    // 3. User Defined Custom Layers for this intersection
     const customKey1 = `${activeGroup}::${hazardCode}`;
     const customKey2 = `${activeGroup}::${hazardCode}::${compCode}`;
     const rawCustom = [...(customRows[customKey1] || []), ...(customRows[customKey2] || [])];
 
     rawCustom.forEach((c: any) => {
-      const id = `custom|${activeGroup}|${hazardCode}|${c.id}`;
+      const id = `custom|${activeGroup}|${hazardCode}|${compCode}|${c.id}`;
       const override = rowOverrides[id];
       if (override?.deleted) return;
 
@@ -423,8 +613,10 @@ export const SpatialHazardInventory: React.FC<SpatialHazardInventoryProps> = ({
         priority,
         note,
         isCustom: true,
+        layerType: 'custom',
         analiz: 'Özel Veri Katmanı',
-        sartname: 'Kullanıcı Tanımlı Veri'
+        sartname: 'Kullanıcı Tanımlı Veri',
+        compCode
       });
     });
 
@@ -1006,11 +1198,46 @@ export const SpatialHazardInventory: React.FC<SpatialHazardInventoryProps> = ({
                           </div>
                         ) : (
                           <div>
-                            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '11px', lineHeight: 1.35 }}>
-                              {item.name}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              {item.layerType === 'gis' ? (
+                                <span style={{
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  background: '#F1F5F9',
+                                  color: '#334155',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  border: '1px solid #E2E8F0',
+                                  fontFamily: 'monospace'
+                                }}>
+                                  CBS Katmanı
+                                </span>
+                              ) : item.layerType === 'hazard' ? (
+                                <span style={{
+                                  fontSize: '9px',
+                                  fontWeight: 600,
+                                  background: '#F8FAFC',
+                                  color: '#64748B',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  border: '1px solid #E2E8F0'
+                                }}>
+                                  Tehlike Modeli
+                                </span>
+                              ) : null}
+
+                              <span style={{ 
+                                fontWeight: 600, 
+                                color: '#0F172A', 
+                                fontSize: '11px', 
+                                lineHeight: 1.35,
+                                fontFamily: item.name.includes('_') ? 'monospace, sans-serif' : 'inherit'
+                              }}>
+                                {item.name}
+                              </span>
                             </div>
                             {item.analiz && item.analiz !== 'Özel Veri Katmanı' && (
-                              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '1px' }}>
+                              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px', paddingLeft: '2px' }}>
                                 {item.analiz}
                               </div>
                             )}

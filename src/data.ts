@@ -180,14 +180,31 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Karayolu Ulaşım Ağları',
         entries: [
           {
-            sartname: 'Karayolu ana arterleri, otoyollar, köprüler, tüneller ve acil ulaşım yollarının envanteri',
-            analiz: 'Kritik karayolu ağı hiyerarşisi ve kapasite analizi',
+            sartname: 'Karayolu ana arterleri, otoyollar, devlet yolları, köprüler, tüneller, otoparklar ve mikromobilite ağları',
+            analiz: 'Kritik karayolu ağı hiyerarşisi, trafik yoğunluğu (YOGT), arzu hatları ve erişilebilirlik analizi',
             veri: [
-              { n: 'Karayolu ulaşım ağı (SoV_RoadNetwork)', v: true },
-              { n: 'Acil ulaşım yolları ağı (SoV_EARoutes)', v: true },
-              { n: 'Köprü ve viyadük envanteri (İBB ve KGM)', v: true },
-              { n: 'Karayolu tünelleri ve alt geçitler envanteri', v: true },
-              { n: 'Otoyol gişeleri, katılım kolları ve ana arter kesişimleri', v: true }
+              { n: 'İstanbul Karayolu Ağı (ULA_Yol_agi_cdp)', v: true },
+              { n: 'Marmara Bölgesindeki Otoyollar (ULA_MB_Otoyollar)', v: true },
+              { n: 'Marmara Bölgesindeki Planlanan Otoyollar (ULA_MB_PlanlananOtoyollar)', v: true },
+              { n: 'Marmara Bölgesindeki Devlet Yolları (ULA_MB_DevletYollari)', v: true },
+              { n: 'Marmara Bölgesindeki Otoyolların (Sadece TEM) Yıllık Ortalama Günlük Trafik Değerleri (ULA_MB_Otoyol_YOGT)', v: true },
+              { n: 'Marmara Bölgesindeki Devlet Yollarının Yıllık Ortalama Günlük Trafik Değerleri (ULA_MB_DevletYoluYOGT)', v: true },
+              { n: 'Yol Üstü Otoparklar (ULA_Yolustu_Otoparklar)', v: true },
+              { n: 'Yol Dışı Otoparklar (ULA_Yoldisi_Otoparklar)', v: true },
+              { n: 'Park et Devam et Otoparkları (ULA_PD_Otoparklar)', v: true },
+              { n: 'Yaya Yolları (ULA_Yaya_Yollari)', v: true },
+              { n: 'Mikromobilite Park Alanları (ULA_Mikromobilite_Park_Alanlari)', v: true },
+              { n: 'Bisiklet Park Alanları (ULA_Bisiklet_Park_Alanlari)', v: true },
+              { n: 'Mevcut Paylaşımlı Bisiklet Yolu (ULA_Mevcut_Paylasimli_Bisiklet)', v: true },
+              { n: 'Mevcut Ayrılmış Bisiklet Yolu (ULA_Mevcut_Ayrilmis_Bisiklet)', v: true },
+              { n: 'İnşaat Aşamasındaki Bisiklet Yolu (ULA_Insaat_Asamasi_Bisiklet)', v: true },
+              { n: 'UTK Kararlı Bisiklet Yolu (ULA_UTK_Kararli_Bisiklet)', v: true },
+              { n: 'Üst Ölçek Zonlarındaki Üretim ve Çekim Yolculuk Değerleri (ULA_Zon_Yolculuk)', v: true },
+              { n: 'Toplam Yolculukların İlçeler Arası Arzu Hatları (ULA_Top_Arzu_Hatlari)', v: true },
+              { n: 'Toplu Taşıma Yolculukların İlçeler Arası Arzu Hatları (ULA_TT_Arzu_Hatlari)', v: true },
+              { n: 'Özel Otomobil Yolculukların İlçeler Arası Arzu Hatları (ULA_OO_Arzu_Hatlari)', v: true },
+              { n: 'Köprü, Viyadük ve Tünel Envanteri (İBB & KGM)', v: true },
+              { n: 'Acil Ulaşım Yolları Ağı (AUY 1. ve 2. Derece Güzergâhlar)', v: true }
             ]
           }
         ]
@@ -199,13 +216,23 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Ulaşım Odakları (Aktarma Merkezi, İstasyonlar, İskeleler vb.)',
         entries: [
           {
-            sartname: 'Ulaşım aktarma merkezleri, istasyonlar, iskeleler ve terminallerin mekânsal envanteri',
-            analiz: 'Ulaşım odakları erişilebilirlik ve yolcu yoğunluk analizi',
+            sartname: 'Ulaşım aktarma merkezleri, raylı sistem istasyonları, deniz iskeleleri, otogarlar ve erişilebilirlik alanları',
+            analiz: 'Ulaşım odakları 5-10-15 dakika yaya erişilebilirlik ve yolcu transfer kapasitesi analizi',
             veri: [
-              { n: 'Ulaşım aktarma merkezleri envanteri (Yenikapı, Üsküdar, Mecidiyeköy vb.)', v: true },
-              { n: 'Raylı sistem istasyonları ve giriş-çıkış noktaları', v: true },
-              { n: 'Şehir Hatları, İDO ve BUDO yolcu iskeleleri envanteri', v: true },
-              { n: 'Şehirlerarası otogarlar ve ana cep terminalleri (Esenler, Harem, Alibeyköy)', v: true }
+              { n: "İstanbul'daki Toplu Taşıma Raylı Sistem İstasyonları (Mevcut ve İnşaat Aşamasında) Metro, Tramvay, Marmaray, Füniküler, Teleferik vb. (ULA_Rayli_Sistem_Istasyonlari)", v: true },
+              { n: 'Marmara Bölgesindeki Demiryolu İstasyonları (ULA_MB_Demiryolu_Istasyonlari)', v: true },
+              { n: "İstanbul'daki Denizyolu İskeleleri (ULA_Denizyolu_Iskeleler)", v: true },
+              { n: 'Marmara Bölgesi İç Sulardaki İskeleler (İDO, BUDO vb.) (ULA_MB_Iskele)', v: true },
+              { n: 'Marmara Bölgesindeki Otogarlar (ULA_MB_Otogarlar)', v: true },
+              { n: 'Metrobüs Durakları (ULA_Metrobus_Duraklari)', v: true },
+              { n: 'İETT Hatları Durakları (ULA_IETT_Duraklar)', v: true },
+              { n: 'Taksi Dolmuş Durakları (ULA_Taksi_Dolmus_Durak)', v: true },
+              { n: 'Marmara Bölgesindeki Kruvaziyer Limanları (ULA_MB_Kruvaziyer_Limanlari)', v: true },
+              { n: 'Marmara Bölgesindeki Havalimanları (ULA_MB_Havalimanlari)', v: true },
+              { n: 'Metrobüs Duraklarından 5-10-15 Dakika Yaya Erişim (ULA_Metrobus_Erisilebilirlik)', v: true },
+              { n: 'Raylı Sistem İstasyonlarından 5-10-15 Dakika Yaya Erişim (ULA_RayliSistem_Erisilebilirlik)', v: true },
+              { n: 'Mevcut ve Planlanan Raylı Sistem İstasyonlarından 5-10-15 Dakika Yaya Erişim (ULA_PL_Rayli_Erisilebilirlik)', v: true },
+              { n: 'Ulaşım Aktarma Merkezleri Envanteri (Yenikapı, Üsküdar, Kadıköy, Mecidiyeköy)', v: true }
             ]
           }
         ]
@@ -217,13 +244,18 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Toplu Taşıma Sistemi (Lastik Tekerlek, Raylı Sistem vb.)',
         entries: [
           {
-            sartname: 'Lastik tekerlekli, raylı sistem ve deniz toplu taşıma hatları ile filo/depo tesisleri',
-            analiz: 'Toplu taşıma ağ yapısı ve operasyonel kapasite analizi',
+            sartname: 'Toplu taşıma raylı sistem hatları, hızlı tren, konvansiyonel hatlar, otobüs ana güzergâhları, garajlar ve denizyolu hatları',
+            analiz: 'Toplu taşıma hat kapasitesi, şebeke sürekliliği ve garaj/depo lojistik analizi',
             veri: [
-              { n: 'Otobüs ve metrobüs güzergâhları ağı (SoV_BusNetwork)', v: true },
-              { n: 'Raylı sistem hatları ağı (Metro, Tramvay, Marmaray, Füniküler) (SoV_RailwayNetwork)', v: true },
-              { n: 'Deniz toplu taşıma hatları ve sefer tarifeleri', v: true },
-              { n: 'İETT garajları, metro depo alanları ve bakım-onarım atölyeleri', v: true }
+              { n: "İstanbul'daki Toplu Taşıma Raylı Sistem Hatları (Mevcut ve İnşaat Aşamasında) Metro, Tramvay, Marmaray, Füniküler, Teleferik vb. (ULA_Rayli_Sistem_Hatlari)", v: true },
+              { n: 'Marmara Bölgesindeki YHT Hattı (ULA_MB_YHT_Hatti)', v: true },
+              { n: 'Marmara Bölgesindeki Planlanan YHT Hattı (ULA_MB_PL_YHT_Hatti)', v: true },
+              { n: 'Marmara Bölgesindeki Konvansiyonel Hat (ULA_MB_Konvansiyonel_Hat)', v: true },
+              { n: 'İETT Hatları Ana Güzergâhları (Metrobüs dahil) (ULA_IETT_Anaguzergahlar)', v: true },
+              { n: 'İETT Garajları (ULA_IETT_Garaj)', v: true },
+              { n: "İstanbul'daki Minibüs Hatları (ULA_Minibus_Hatlari)", v: true },
+              { n: "İstanbul'daki Denizyolu Hatları (ULA_Denizyolu_Hatlari)", v: true },
+              { n: 'Marmara Bölgesi İç Sulardaki Denizyolu Güzergâhları (ULA_MB_DY_Guzergah)', v: true }
             ]
           }
         ]
@@ -724,12 +756,34 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Enerji Altyapıları',
         entries: [
           {
-            sartname: 'Elektrik iletim ve dağıtım şebekesi, trafo merkezleri ve doğalgaz boru hatları',
-            analiz: 'Kritik enerji altyapısı kapasite ve ağ yapısı analizi',
+            sartname: 'BOTAŞ ve İGDAŞ doğalgaz boru hatları, TEİAŞ/BEDAŞ/AYEDAŞ elektrik iletim ve dağıtım şebekesi, RES santralleri ve şarj/akaryakıt istasyonları',
+            analiz: 'Enerji iletim omurgası, trafo merkezleri, arz güvenliği ve tüketim analizi',
             veri: [
-              { n: 'İstanbul doğal gaz iletim ve dağıtım altyapısı (İGDAŞ / BOTAŞ)', v: true },
-              { n: 'Elektrik iletim hatları, yüksek gerilim trafoları ve dağıtım merkezleri (TEİAŞ, BEDAŞ, AYEDAŞ)', v: false },
-              { n: 'Akaryakıt ve LPG depolama ve boru hattı tesisleri', v: false }
+              { n: 'Botaş İletim Hatları (TAY_BOTAS_HAT)', v: true },
+              { n: 'Botaş Nokta Verisi (TAY_BOTAS_NOKTA)', v: true },
+              { n: 'Doğal Gaz Dağıtım Hatları (TAY_DGAZ_HAT)', v: true },
+              { n: 'Doğal Gaz Hizmet Alanı (TAY_DOGALGAZ_HIZMET)', v: true },
+              { n: 'Mahalle Bazında Doğal Gaz Tüketimi (TAY_DOGALGAZTUK_MAH)', v: true },
+              { n: 'İlçe Bazında Doğal Gaz Tüketimi (TAY_DOGALGAZTUK_ILCE)', v: true },
+              { n: 'Elektrik İletim Hatları (TAY_ELEK_ILETIM)', v: true },
+              { n: 'Elektrik Dağıtım Hatları (TAY_ELEK_DAGITIM)', v: true },
+              { n: 'Elektrik Dağıtım Merkezleri (TAY_ELEK_DAGITIMMER)', v: true },
+              { n: 'İlçe Bazında Elektrik Tüketim Verisi (TAY_ELEK_TUK_ILCE)', v: true },
+              { n: 'Dağıtım Bölgeleri Bazında Elektrik Verileri (TAY_ELEK_ULUSAL_VERI)', v: true },
+              { n: 'Marmara Bölgesi Üretim Tüketim Verisi (TAY_ELEK_MRMR_VERI)', v: true },
+              { n: 'TR Elektrik Kurulu Güç, Üretim ve Tüketim Verileri (TAY_ULUSAL_VERI)', v: true },
+              { n: 'Elektrik Kesintisi Verileri (TAY_ELEK_KESINTI)', v: true },
+              { n: 'Elektrikli Şarj İstasyonları (TAY_ELEK_SARJ_IST)', v: true },
+              { n: 'İlçelerdeki Petrol Bayiliği (TAY_PETROL_EPDK_2026)', v: true },
+              { n: 'İlçelerdeki LPG Bayiliği (TAY_LPG_EPDK_2026)', v: true },
+              { n: 'Lisanslı RES Alanları (TAY_RES_LSN_ALAN)', v: true },
+              { n: 'Planlanan RES Alanları (TAY_RES_PLN_ALAN)', v: true },
+              { n: 'Önlisanslı RES Alanları (TAY_RES_ON_ALAN)', v: true },
+              { n: 'Lisanslı RES Türbinleri (TAY_RES_LSN_TRBN)', v: true },
+              { n: 'Planlanan RES Türbinleri (TAY_RES_PLN_TRBN)', v: true },
+              { n: 'Önlisanslı RES Türbinleri (TAY_RES_ON_TRBN)', v: true },
+              { n: 'Marmara Bölgesi İBBS Düzeyleri (TAY_MRMR_BOLGE)', v: true },
+              { n: 'Marmara Bölgesi Sınırları (TAY_MRMR_SINIR)', v: true }
             ]
           }
         ]
@@ -741,13 +795,29 @@ export const DATA: Record<string, any> = {
         title: 'Kritik İçme ve Kullanma Suyu Altyapıları',
         entries: [
           {
-            sartname: 'Barajlar, arıtma tesisleri, ana isale hatları, terfi merkezleri ve su depoları',
-            analiz: 'İçme suyu tedarik ve dağıtım zinciri kritiklik analizi',
+            sartname: 'İSKİ barajları, göletler, kuyular, dereler, içme suyu isale ve dağıtım hatları, arıtma tesisleri, terfi merkezleri ve depolar',
+            analiz: 'İçme suyu kaynak koruma havzaları, isale kapasitesi ve su depolama yedeklilik analizi',
             veri: [
-              { n: 'İSKİ barajları, göletler ve regülatörler envanteri', v: true },
-              { n: 'İçme suyu ana isale hatları güzergâhları (isale_hatti_l6)', v: true },
-              { n: 'İçme suyu arıtma tesisleri ve ana terfi merkezleri', v: true },
-              { n: 'Kentsel su depoları ve şebeke dağıtım zonları', v: true }
+              { n: 'Mevcut ve Plandaki Barajlar (TAY_BARAJLAR)', v: true },
+              { n: 'Göletler (TAY_GOLETLER)', v: true },
+              { n: 'Kuyular (TAY_KUYU)', v: true },
+              { n: 'Dereler (TAY_DERELER)', v: true },
+              { n: 'İçme Suyu İsale Hatları (TAY_ICMESUYU_ISALE)', v: true },
+              { n: 'İçmesuyu İsale Hattı Noktaları (TAY_ICMESUYU_ISALE_NOKTA)', v: true },
+              { n: 'İçme Suyu Dağıtım Hatları (TAY_ICMESUYU_DAGITIM)', v: true },
+              { n: 'İçmesuyu Arıtma Tesisleri Alanları (TAY_ICMESUYU_IAT)', v: true },
+              { n: 'İçmesuyu Arıtma Tesisleri Noktaları (TAY_ICMESUYU_IAT_NOKTA)', v: true },
+              { n: 'İçmesuyu Terfi Merkezleri (TAY_ICMESUYU_TERFI)', v: true },
+              { n: 'İçmesuyu Terfi Merkezi Alanları (TAY_ICMESUYU_TERFI_ALAN)', v: true },
+              { n: 'İçmesuyu Temizsu Depoları (TAY_ICMESUYU_DEPO)', v: true },
+              { n: 'İçmesuyu Temizsu Depo Alanları (TAY_ICMESUYU_DEPO_ALAN)', v: true },
+              { n: 'İçmesuyu Kolektor Hatları (TAY_ICMESUYU_KOLEKTOR)', v: true },
+              { n: 'İçmesuyu Kolektor Noktaları (TAY_ICMESUYU_KOLEKTOR_NOKTA)', v: true },
+              { n: 'İçmesuyu Numune Noktaları (TAY_ICMESUYU_NUMUNE)', v: true },
+              { n: 'İçmesuyu Sulama Hatları (TAY_ICMESUYU_SULAMA)', v: true },
+              { n: 'İçmesuyu Sulama Noktaları (TAY_ICMESUYU_SULAMA_NOKTA)', v: true },
+              { n: 'İSKİ Parselleri (TAY_ISKI_PARSEL)', v: true },
+              { n: 'Havzalardaki Yapılaşma (TAY_HAVZALARDAYAPI)', v: true }
             ]
           }
         ]
@@ -756,16 +826,38 @@ export const DATA: Record<string, any> = {
         chapterNum: '3',
         chapterTitle: 'TEKNİK ALTYAPI SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
         code: '3.3',
-        title: 'Kritik Atık Altyapıları',
+        title: 'Kritik Atık ve Drenaj Altyapıları',
         entries: [
           {
-            sartname: 'Atıksu arıtma tesisleri, kolektörler, yağmur suyu kanalları ve katı/tehlikeli atık tesisleri',
-            analiz: 'Atıksu ve katı atık bertaraf altyapısı analizi',
+            sartname: 'Atıksu arıtma tesisleri (AAT), deşarj hatları, yağmursuyu drenaj ana hatları, dere işletme bantları, taşkın alanları, katı atık ve hafriyat sahaları',
+            analiz: 'Atıksu toplama, yağmursuyu havzaları hidrolik kapasitesi ve katı atık bertaraf yönetimi analizi',
             veri: [
-              { n: 'Atıksu arıtma tesisleri ve ana derin deşarj hatları (İSKİ)', v: true },
-              { n: 'Atıksu kolektörleri ve ana yağmur suyu drenaj hatları', v: true },
-              { n: 'Katı atık aktarma istasyonları ve düzenli depolama sahaları (İSTAÇ Seymen, Odayeri vb.)', v: false },
-              { n: 'Tıbbi ve tehlikeli atık yakma/sterilizasyon tesisleri', v: false }
+              { n: 'Atıksu Arıtma Tesisleri Alanları (TAY_ATIKSU_AAT)', v: true },
+              { n: 'Atıksu Arıtma Tesisleri Noktaları (TAY_AAT_POINT)', v: true },
+              { n: 'Planlanan Atıksu Arıtma Tesisleri Noktaları (TAY_PLN_AAT_POINT)', v: true },
+              { n: 'Atıksu Arıtma Tesisleri Numune Noktaları (TAY_ATIKSU_AAT_NUMUNE)', v: true },
+              { n: 'Atıksu Toplama Hatları (TAY_ATIKSU_HAT)', v: true },
+              { n: 'Atıksu Deşarj Hatları (TAY_ATIKSU_DESARJHAT)', v: true },
+              { n: 'Atıksu Terfi Merkezleri (TAY_ATIKSU_TERFI)', v: true },
+              { n: 'Atıksu Deşarjı Olan Tesisler (TAY_DESARJ_TESIS)', v: true },
+              { n: 'Deşarj Noktaları (TAY_DESARJ_NOKTA)', v: true },
+              { n: 'Yağmursuyu Drenaj Ana Hatları (TAY_YAGMURS_ANADRENAJ)', v: true },
+              { n: 'Yağmursuyu Drenaj Hatları (TAY_YAGMURS_DRENAJ)', v: true },
+              { n: 'Toplayıcı Yağmur Suyu Hattı (TAY_YAGMUR_TOPLAYICI)', v: true },
+              { n: 'Toplayıcı Yağmur Suyu Hattı Noktaları (TAY_YAGMUR_TOPLAYICI_NOKTA)', v: true },
+              { n: 'Yağmursuyu Havzaları (TAY_YGMR_HAVZA)', v: true },
+              { n: 'Avrupa Yakası Dere İşletme Bantları (TAY_AVR_DERE_ISTBANT)', v: true },
+              { n: 'Anadolu Yakası Dere İşletme Bantları (TAY_AND_DERE_ISTBANT)', v: true },
+              { n: 'İSKİ Dere Taşkın Alanları (TAY_DERE_TASKIN)', v: true },
+              { n: 'Su Geri Kazanım Hatları (TAY_GERIKAZANIMHAT)', v: true },
+              { n: 'Geri Kazanım Nokta (TAY_GERIKAZANIM_NOKTA)', v: true },
+              { n: 'Katı Atık Depolama ve Bertaraf Entegre Tesisleri (TAY_KATIATIK_TESIS)', v: true },
+              { n: 'İlçe Bazında Evsel Atık Miktarı (ton/yıl) (TAY_ATIK_EVSELVERI)', v: true },
+              { n: 'Tehlikeli Atık Tesisleri (TAY_TEHLIKELIATK_TESIS)', v: true },
+              { n: 'Atık Elektrikli ve Elektronik Eşya Tesisleri (TAY_AEEE_TESIS)', v: true },
+              { n: 'Hafriyat Döküm Sahaları (TAY_AKTF_HAFRIYAT)', v: true },
+              { n: 'Pasif Hafriyat Döküm Sahaları (2021-2026) (TAY_PSF_HAFRIYAT)', v: true },
+              { n: 'İSTAÇ Hafriyat Atıkları Yönetim Ofisleri (TAY_HAFRIYATYNTM)', v: true }
             ]
           }
         ]
@@ -774,15 +866,16 @@ export const DATA: Record<string, any> = {
         chapterNum: '3',
         chapterTitle: 'TEKNİK ALTYAPI SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
         code: '3.4',
-        title: 'Kritik Bilgi ve İletişim Altyapıları',
+        title: 'Kritik Bilgi, İletişim ve Acil Durum Altyapıları',
         entries: [
           {
-            sartname: 'Fiber optik hatlar, veri merkezleri, baz istasyonları ve acil haberleşme sistemleri',
-            analiz: 'İletişim omurgası ve yedeklilik analizi',
+            sartname: 'Veri merkezleri, telekomünikasyon santralleri, baz istasyonları ve ilçe sağlık altyapıları',
+            analiz: 'Kritik veri merkezleri sürekliliği, iletişim ağı yedekliliği ve acil sağlık altyapısı kapasitesi',
             veri: [
-              { n: 'Fiber optik ana iletim hatları ve telekomünikasyon santralleri', v: false },
-              { n: 'Veri merkezleri (Data Center) ve bulut altyapı tesisleri', v: false },
-              { n: 'GSM baz istasyonları kuleleri ve acil durum telsiz şebekesi (Jandarma/AFAD/AKOM)', v: false }
+              { n: 'Veri Merkezleri (TAY_VERI_MERKEZLERI)', v: true },
+              { n: 'İlçe Bazında Sağlık Tesisi Sayısı (TAY_SAGLIKTESIS_ILCE)', v: true },
+              { n: 'Fiber optik ana iletim hatları ve telekomünikasyon santralleri', v: true },
+              { n: 'GSM baz istasyonları ve acil telsiz haberleşme kuleleri', v: true }
             ]
           }
         ]
@@ -1256,13 +1349,20 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Ulaşım Ağları (Karayolu, Demiryolu, Havayolu, Denizyolu)',
         entries: [
           {
-            sartname: 'Ağır taşıt yük koridorları, demiryolu iltisak hatları, hava kargo ve liman bağlantıları',
-            analiz: 'Çok modlu lojistik ağ ve koridor hiyerarşisi analizi',
+            sartname: 'Ağır taşıt yük koridorları, demiryolu iltisak hatları, hava kargo ve liman bağlantıları, Ro-Ro ve konteyner hatları',
+            analiz: 'Çok modlu lojistik ağ ve koridor hiyerarşisi, yük elleçleme ve gros ton taşımacılık analizi',
             veri: [
               { n: 'Karayolu yük taşımacılığı ana arterleri (TEM, Kuzey Marmara Otoyolu, D-100)', v: true },
-              { n: 'Demiryolu yük koridorları ve lojistik merkez iltisak hatları (TCDD)', v: true },
-              { n: 'İstanbul Havalimanı ve Sabiha Gökçen Hava Kargo Terminalleri bağlantıları', v: false },
-              { n: 'Ambarlı, Haydarpaşa, Tuzla ve Zeytinburnu Ro-Ro/Konteyner liman bağlantıları', v: false }
+              { n: 'Halkalı Yük Terminali (Lojistik Merkez) İstatistikleri (LOJ_TCDD_Yuk_Terminalleri_2015-2024)', v: true },
+              { n: 'Havayolu ile taşınan yük miktarı (Marmara Bölgesi ve İstanbul Havalimanları Kıyaslaması) (LOJ_Havalimanı_Yük_2015-2024)', v: true },
+              { n: 'Marmara Bölgesi Havalimanları (Marmara_Havalimanlari_2025)', v: true },
+              { n: 'Liman Başkanlıkları Bazında Gemilerde Taşınan Gros Ton Miktarı (LOJ_Gros_Ton_2015-2024)', v: true },
+              { n: 'Liman Başkanlıkları Bazında Gemi Sayısı (LOJ_Gemi_sayisi_2015-2024)', v: true },
+              { n: 'Konteyner Yük Elleçleme İstatistikleri (LOJ_Konteyner_Yuk_Ellecleme_2015-2024)', v: true },
+              { n: 'Yük Elleçleme İstatistikleri (LOJ_Yuk_Ellecleme_2015-2024)', v: true },
+              { n: 'Ro-Ro İstatistikleri (LOJ_Ro-Ro_istatistikleri_2019-2024)', v: true },
+              { n: 'Marmara Bölgesi Liman İşletmeleri (LOJ_Marmara_Bolgesi_Liman_ isletmeleri_2025)', v: true },
+              { n: 'Marmara Bölgesi Yük Limanları (Lojistik_limanlar_2025)', v: true }
             ]
           }
         ]
@@ -1274,13 +1374,24 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Lojistik Odakları',
         entries: [
           {
-            sartname: 'Lojistik merkezler, serbest bölgeler, toptancı halleri ve büyük dağıtım merkezleri',
-            analiz: 'Kritik lojistik odakları mekânsal dağılım ve yük debisi analizi',
+            sartname: 'Organize Sanayi Bölgeleri (OSB), haller, sanayi sektörleri, serbest bölgeler ve eşya nakliye firma merkezleri',
+            analiz: 'Kritik lojistik odakları mekânsal kümelenme, OSB sektörel dağılımı ve gıda tedarik zinciri analizi',
             veri: [
-              { n: 'İstanbul Toptancı Halleri (Bayrampaşa, Ataşehir Yaş Meyve/Sebze ve Su Ürünleri Halleri)', v: true },
-              { n: 'Hadımköy, Tuzla ve Çatalca Lojistik İhtisas Bölgeleri ve depoları', v: true },
-              { n: 'İstanbul Atatürk ve Trakya Serbest Bölgeleri', v: false },
-              { n: 'E-ticaret ve kargo ayrıştırma ana transfer merkezleri', v: false }
+              { n: 'İstanbul Kuru Gıda, Sebze Meyve ve Su Ürünleri Halleri (Haller_2025)', v: true },
+              { n: 'Marmara Bölgesindeki Organize Sanayi Bölgelerinin Konumları (Marmara_OSB_2025)', v: true },
+              { n: 'Makro Arazi Kullanım Üzerindeki İSO Sanayi Sektörleri (Sanayi_alan_sektorler_2025)', v: true },
+              { n: "İstanbul'un Doğu Sınırındaki Sanayi Alanlarının Sürekliliğini Gösteren Gebze Sanayi Alanları (Kocaeli_Gebze_sanayi_alanlari_2025)", v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Anadolu Yakası OSB) (LOJ_Anadolu_yakası_osb_ sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Kimya OSB) (LOJ_kimya_osb_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Deri OSB) (LOJ_deri_OSB_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Tuzla OSB) (LOJ_tuzla_OSB_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Birlik OSB) (LOJ_birlik_OSB_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Dudullu OSB) (LOJ_dudullu_OSB_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (Beylikdüzü OSB) (LOJ_beylikdüzü_osb_sektörler)', v: true },
+              { n: 'OSBlerdeki Sektör Dağılımı (İkitelli OSB) (LOJ_ikitelli_OSB_sektörler)', v: true },
+              { n: 'Marmara Bölgesindeki Serbest Bölgeler (Marmara_serbest_bolgeler_2025)', v: true },
+              { n: '2009 ÇDP Alanları (CDP_2009_alan)', v: true },
+              { n: "İstanbul'da Eşya Taşımacılığı Yapan Nakliye Firma Konumları (Nakliye_firma_2025)", v: true }
             ]
           }
         ]
@@ -1292,12 +1403,15 @@ export const DATA: Record<string, any> = {
         title: 'Kritik Lojistik Terminaller',
         entries: [
           {
-            sartname: 'Antrepolar, soğuk hava depoları, tehlikeli madde dolum alanları ve TIR parkları',
-            analiz: 'Terminal depolama kapasitesi ve tehlikeli madde konsantrasyonu analizi',
+            sartname: 'Yük terminalleri, gümrük müdürlükleri, antrepolar, ithalat-ihracat merkezleri ve yanıcı-parlayıcı depolar',
+            analiz: 'Terminal depolama kapasitesi, gümrük işlem hacmi ve yanıcı-patlayıcı tehlike yoğunluk analizi',
             veri: [
-              { n: 'Gümrüklü antrepolar ve soğuk hava depolama tesisleri envanteri', v: false },
-              { n: 'LPG, akaryakıt ve kimyasal dolum terminalleri (Haramidere, Çekmece vb.)', v: false },
-              { n: 'Konteyner depolama sahaları ve gümrük TIR parkları', v: false }
+              { n: 'Mevcut Yük Terminali (Lojistik Merkez) Konumu (Yuk_Terminalleri_2025)', v: true },
+              { n: "İstanbul'daki Gümrük Müdürlükleri Konumları ve Bağlı Antrepo Sayıları (Gumruk_mudurlukleri_2025)", v: true },
+              { n: 'İstanbul Gümrük İstatistikleri (İthalat-İhracat-Antrepo) (LOJ_İstanbul_Gumruk_istatistikleri_2016-2024)', v: true },
+              { n: 'İstanbul Gümrük Değerleri (İthalat-İhracat) (LOJ_İstanbul_Gumruk_ithalat_ihracat_deger_2017-2024)', v: true },
+              { n: 'Yanıcı Parlayıcı Patlayıcı Madde Depo Bilgileri (LOJ_İstanbul_Parlayıcı_Depolar)', v: true },
+              { n: 'Yanıcı Parlayıcı Patlayıcı Madde Depo Konumları (Yanici_patlayici_depo_2025)', v: true }
             ]
           }
         ]
