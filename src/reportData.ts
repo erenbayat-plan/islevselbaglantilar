@@ -7,6 +7,15 @@ export interface AnalysisItem {
   status: 'Tamamlandı' | 'Devam Ediyor' | 'Başlamadı' | 'İncelemede';
 }
 
+export interface ReportStatusItem {
+  status: ReportStatusType;
+  progress: number;
+  author?: string;
+  targetPages?: string;
+  note?: string;
+  driveLink?: string;
+}
+
 export interface ReportItem {
   id: string;
   level1?: string;
@@ -24,6 +33,7 @@ export interface ReportItem {
 }
 
 export interface ReportSubSection {
+  id?: string;
   code: string;
   title: string;
   level2?: string;
@@ -139,7 +149,7 @@ function makeItems(groupKey: string, chapterNum: string, chapterTitle: string, s
     }
 
     return {
-      id: `${groupKey}_${s.code.replace(/\./g, '_')}`,
+      id: s.id || `${groupKey}_${s.code.replace(/\./g, '_')}`,
       level1: `${chapterNum}. ${chapterTitle}`,
       level1Num: chapterNum,
       level2,
@@ -154,6 +164,87 @@ function makeItems(groupKey: string, chapterNum: string, chapterTitle: string, s
       analizler: s.analizler || []
     };
   });
+}
+
+/**
+ * Non-destructive migration function that strictly adheres to the user directives:
+ * 1. Takes an automatic timestamped backup of reportStatus into localStorage and metadata.
+ * 2. Does NOT transfer data between different working groups.
+ * 3. Preserves semantic identity:
+ *    - 5.2 (previously 'Patlama ve Endüstriyel Kazalar') is mapped to 5.3 ('Patlama ve Endüstriyel Kazalar').
+ *    - The new 5.2 ('Yangın') is kept completely unassigned/fresh, avoiding incorrect progress inheritance.
+ *    - 6.3 (previously 'Kıtlık ve Kaynak Stresi') is mapped to 6.4 ('Kıtlık ve Kaynak Stresi').
+ *    - The new 6.3 ('Fırtına ve Aşırı Hava Olayları') is kept completely unassigned/fresh.
+ * 4. Never deletes unreferenced items (such as ulasim_4_1_1 or ulasim_7_2_6); keeps them preserved in status storage and archive.
+ * 5. Preserves all authors, notes, drive links, status types, and completion percentages.
+ */
+export function migrateReportStatus(
+  currentStatus: Record<string, ReportStatusItem>
+): { migrated: Record<string, ReportStatusItem>; hadChanges: boolean; backupKey?: string } {
+  if (!currentStatus || typeof currentStatus !== 'object') {
+    return { migrated: {}, hadChanges: false };
+  }
+
+  // Check if this browser has already completed the v3 structural migration
+  if (typeof window !== 'undefined' && localStorage.getItem('report_status_v3_migrated') === 'true') {
+    return { migrated: currentStatus, hadChanges: false };
+  }
+
+  let hadChanges = false;
+  const migrated: Record<string, ReportStatusItem> = { ...currentStatus };
+
+  // 1. Create a safe, restorable backup before applying any key shifts
+  const backupTimestamp = new Date().toISOString();
+  const backupKey = `report_status_backup_${backupTimestamp}`;
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(backupKey, JSON.stringify(currentStatus));
+      localStorage.setItem('report_status_latest_backup', JSON.stringify({
+        timestamp: backupTimestamp,
+        data: currentStatus
+      }));
+    }
+  } catch (e) {
+    console.warn('Backup write to localStorage warning:', e);
+  }
+
+  // 2. Perform semantic preservation for each working group individually
+  const groups = ['ulasim', 'lojistik', 'teknikaltyapi'];
+  groups.forEach(grp => {
+    // Check 5.2 -> 5.3 shift (Patlama ve Endüstriyel Kazalar)
+    const old52 = migrated[`${grp}_5_2`];
+    if (old52 && (old52.progress > 0 || old52.author || old52.note || (old52.status && old52.status !== 'not_started'))) {
+      if (!migrated[`${grp}_5_3`]) {
+        // Move to new position 5.3 representing the exact same study
+        migrated[`${grp}_5_3`] = { ...old52 };
+        // Archive under historical key as well so it is permanently preserved
+        migrated[`${grp}_5_2_archived_pre_v3`] = { ...old52 };
+        // Clear 5.2 so new topic 'Yangın' starts clean without inheriting unrelated work
+        delete migrated[`${grp}_5_2`];
+        hadChanges = true;
+      }
+    }
+
+    // Check 6.3 -> 6.4 shift (Kıtlık ve Kaynak Stresi)
+    const old63 = migrated[`${grp}_6_3`];
+    if (old63 && (old63.progress > 0 || old63.author || old63.note || (old63.status && old63.status !== 'not_started'))) {
+      if (!migrated[`${grp}_6_4`]) {
+        // Move to new position 6.4 representing the exact same study
+        migrated[`${grp}_6_4`] = { ...old63 };
+        // Archive under historical key as well
+        migrated[`${grp}_6_3_archived_pre_v3`] = { ...old63 };
+        // Clear 6.3 so new topic 'Fırtına ve Aşırı Hava Olayları' starts clean
+        delete migrated[`${grp}_6_3`];
+        hadChanges = true;
+      }
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('report_status_v3_migrated', 'true');
+  }
+
+  return { migrated, hadChanges, backupKey };
 }
 
 // Raw chapters for each group
@@ -258,26 +349,29 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         num: '3',
         title: 'ULAŞIM SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
         subSections: [
-          { code: '3.1', title: 'Karayolu Ulaşım Ağı' },
-          { code: '3.2', title: 'Ulaşım Odakları (Aktarma Merkezi, İstasyonlar, İskeleler vb.)' },
-          { code: '3.3', title: 'Toplu Taşıma Sistemi (Lastik Tekerlek, Raylı Sistem vb.)' }
+          { code: '3.1', title: 'Kritik Karayolu Ulaşım Ağları' },
+          { code: '3.2', title: 'Kritik Ulaşım Odakları (Aktarma Merkezi, İstasyonlar, İskeleler vb.)' },
+          { code: '3.3', title: 'Kritik Toplu Taşıma Sistemi (Lastik Tekerlek, Raylı Sistem vb.)' }
         ]
       },
       {
         num: '4',
         title: 'DOĞA KAYNAKLI AFETLERİN ULAŞIM ALTYAPISI ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
         subSections: [
-          { code: '4.1', title: 'Deprem Tehlikesi ve Riskler' },
-          { code: '4.1.1', title: 'Deprem Maruziyetleri' },
-          { code: '4.2', title: 'Sel ve Taşkın Riski' }
+          { code: '4.1', title: 'Deprem Riski' },
+          { code: '4.2', title: 'Sel ve Taşkın Riski' },
+          { code: '4.3', title: 'Heyelan' },
+          { code: '4.4', title: 'Tsunami' }
         ]
       },
       {
         num: '5',
-        title: 'İNSAN ve TEKNOLOJİ KAYNAKLI AFETLERİN ULAŞIM SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
+        title: 'İNSAN VE TEKONOLOJİ KAYNAKLI AFETLERİN ULAŞIM SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
         subSections: [
           { code: '5.1', title: 'Pandemi' },
-          { code: '5.2', title: 'Patlama ve Endüstriyel Kazalar' }
+          { code: '5.2', title: 'Yangın' },
+          { code: '5.3', title: 'Patlama ve Endüstriyel Kazalar' },
+          { code: '5.4', title: 'Savaş ve Terör Saldırıları' }
         ]
       },
       {
@@ -286,7 +380,8 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         subSections: [
           { code: '6.1', title: 'Aşırı Sıcaklıklar' },
           { code: '6.2', title: 'Deniz Seviyesinin Yükselmesi' },
-          { code: '6.3', title: 'Kıtlık ve Kaynak Stresi' }
+          { code: '6.3', title: 'Fırtına ve Aşırı Hava Olayları' },
+          { code: '6.4', title: 'Kıtlık ve Kaynak Stresi' }
         ]
       },
       {
@@ -294,20 +389,18 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         title: 'AFET VE İKLİM KRİZİ KARŞISINDA ULAŞIM ALTYAPISINA YÖNELİK ULUSLARARASI İYİ UYGULAMA ÖRNEKLERİ',
         subSections: [
           { code: '7.1', title: 'Afet ve İklim Dayanıklı Ulaşım Planlamasına Yönelik Küresel Yaklaşımlar' },
-          { code: '7.2', title: 'Afet ve İklim Dayanıklı Ulaşımda Uluslararası Uygulama Örnekleri' },
-          { code: '7.2.1', title: 'Japonya: Ulaşımın “Hayat Hatları (Lifelines)” Olarak Ele Alınması' },
-          { code: '7.2.2', title: 'New York City: Tahliye Odaklı Afet Ulaşımı' },
-          { code: '7.2.3', title: 'Hollanda: Akıllı Ulaşım Sistemleri (ITS)' },
-          { code: '7.2.4', title: 'Singapur: Taşkın ve Aşırı Yağışlara Karşı Dayanıklı Toplu Taşıma' },
-          { code: '7.2.5', title: 'Yeni Zelanda: Kaikōura Depremi Sonrası Ulaşım Ağının Yeniden Yapılanması' },
-          { code: '7.2.6', title: 'Londra: Çok Modlu Ulaşım Sisteminde İklim Risk Yönetimi' },
-          { code: '7.2.7', title: 'Sydney: İklim Değişikliğine Uyumlu Metro Sistemi' },
-          { code: '7.2.8', title: 'Hanoi: Taşkın Riskine Karşı Metro İşletme ve Varlık Yönetimi' }
+          { code: '7.2.1', title: 'Japonya: Ulaşımın “Hayat Hatları (Lifelines)” Olarak Ele Alınması', level2: '7.1' },
+          { code: '7.2.2', title: 'New York City: Tahliye Odaklı Afet Ulaşımı', level2: '7.1' },
+          { code: '7.2.3', title: 'Hollanda: Akıllı Ulaşım Sistemleri (ITS)', level2: '7.1' },
+          { code: '7.2.4', title: 'Singapur: Taşkın ve Aşırı Yağışlara Karşı Dayanıklı Toplu Taşıma', level2: '7.1' },
+          { code: '7.2.5', title: 'Yeni Zelanda: Kaikōura Depremi Sonrası Ulaşım Ağının Yeniden Yapılanması', level2: '7.1' },
+          { code: '7.2.7', title: 'Sydney: İklim Değişikliğine Uyumlu Metro Sistemi', level2: '7.1' },
+          { code: '7.2.8', title: 'Hanoi: Taşkın Riskine Karşı Metro İşletme ve Varlık Yönetimi', level2: '7.1' }
         ]
       },
       {
         num: '8',
-        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERLENDİRMESİ',
+        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERELENDİRMESİ',
         subSections: []
       },
       {
@@ -419,10 +512,10 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         num: '3',
         title: 'TEKNİK ALTYAPI SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
         subSections: [
-          { code: '3.1', title: 'Enerji Altyapısı', defaultPages: 'sf. 87' },
-          { code: '3.2', title: 'İçme ve Kullanma Suyu Altyapısı', defaultPages: 'sf. 89' },
-          { code: '3.3', title: 'Atık Altyapısı', defaultPages: 'sf. 90' },
-          { code: '3.4', title: 'Bilgi ve İletişim Altyapısı', defaultPages: 'sf. 92' }
+          { code: '3.1', title: 'Kritik Enerji Altyapıları', defaultPages: 'sf. 87' },
+          { code: '3.2', title: 'Kritik İçme ve Kullanma Suyu Altyapıları', defaultPages: 'sf. 89' },
+          { code: '3.3', title: 'Kritik Atık Altyapıları', defaultPages: 'sf. 90' },
+          { code: '3.4', title: 'Kritik Bilgi ve İletişim Altyapıları', defaultPages: 'sf. 92' }
         ]
       },
       {
@@ -441,20 +534,19 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
           },
           { 
             code: '4.3', 
-            title: 'Heyelan Riski', 
+            title: 'Heyelan', 
             defaultPages: 'sf. 104'
           },
           { 
-            code: '4.3.1', 
-            title: 'Heyelan Duyarlılığı', 
-            level2: '4.3. Heyelan Riski', 
-            defaultPages: 'sf. 105'
+            code: '4.4', 
+            title: 'Tsunami', 
+            defaultPages: 'sf. 106'
           }
         ]
       },
       {
         num: '5',
-        title: 'İNSAN ve TEKNOLOJİ KAYNAKLI AFETLERİN TEKNİK ALTYAPI SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
+        title: 'İNSAN VE TEKONOLOJİ KAYNAKLI AFETLERİN TEKNİK ALTYAPI SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
         subSections: [
           { 
             code: '5.1', 
@@ -463,8 +555,18 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
           },
           { 
             code: '5.2', 
+            title: 'Yangın', 
+            defaultPages: 'sf. 110'
+          },
+          { 
+            code: '5.3', 
             title: 'Patlama ve Endüstriyel Kazalar', 
-            defaultPages: 'sf. 108'
+            defaultPages: 'sf. 112'
+          },
+          { 
+            code: '5.4', 
+            title: 'Savaş ve Terör Saldırıları', 
+            defaultPages: 'sf. 114'
           }
         ]
       },
@@ -474,7 +576,8 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         subSections: [
           { code: '6.1', title: 'Aşırı Sıcaklıklar', defaultPages: 'sf. 117' },
           { code: '6.2', title: 'Deniz Seviyesinin Yükselmesi', defaultPages: 'sf. 117' },
-          { code: '6.3', title: 'Kıtlık ve Kaynak Stresi', defaultPages: 'sf. 117' }
+          { code: '6.3', title: 'Fırtına ve Aşırı Hava Olayları', defaultPages: 'sf. 117' },
+          { code: '6.4', title: 'Kıtlık ve Kaynak Stresi', defaultPages: 'sf. 117' }
         ]
       },
       {
@@ -492,7 +595,7 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
       },
       {
         num: '8',
-        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERLENDİRMESİ',
+        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERELENDİRMESİ',
         subSections: [
           { code: '8.1', title: 'Çoklu Risk Bölgeleri ve Kümülatif Etki Değerlendirmesi', defaultPages: 'sf. 142' }
         ]
@@ -594,9 +697,9 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         num: '3',
         title: 'LOJİSTİK SİSTEMLERİ VE KRİTİK BİLEŞENLERİ',
         subSections: [
-          { code: '3.1', title: 'Ulaşım Ağı (Karayolu, Demiryolu, Havayolu, Denizyolu)' },
-          { code: '3.2', title: 'Lojistik Odakları' },
-          { code: '3.3', title: 'Lojistik Terminaller' }
+          { code: '3.1', title: 'Kritik Ulaşım Ağları (Karayolu, Demiryolu, Havayolu, Denizyolu)' },
+          { code: '3.2', title: 'Kritik Lojistik Odakları' },
+          { code: '3.3', title: 'Kritik Lojistik Terminaller' }
         ]
       },
       {
@@ -604,15 +707,19 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         title: 'DOĞA KAYNAKLI AFETLERİN LOJİSTİK SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
         subSections: [
           { code: '4.1', title: 'Deprem Riski' },
-          { code: '4.2', title: 'Sel ve Taşkın Riski' }
+          { code: '4.2', title: 'Sel ve Taşkın Riski' },
+          { code: '4.3', title: 'Heyelan' },
+          { code: '4.4', title: 'Tsunami' }
         ]
       },
       {
         num: '5',
-        title: 'İNSAN VE TEKNOLOJİ KAYNAKLI AFETLERİN LOJİSTİK SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
+        title: 'İNSAN VE TEKONOLOJİ KAYNAKLI AFETLERİN LOJİSTİK SİSTEMLERİ ÜZERİNDEKİ POTANSİYEL ETKİLERİ',
         subSections: [
           { code: '5.1', title: 'Pandemi' },
-          { code: '5.2', title: 'Patlama ve Endüstriyel Kazalar' }
+          { code: '5.2', title: 'Yangın' },
+          { code: '5.3', title: 'Patlama ve Endüstriyel Kazalar' },
+          { code: '5.4', title: 'Savaş ve Terör Saldırıları' }
         ]
       },
       {
@@ -621,7 +728,8 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         subSections: [
           { code: '6.1', title: 'Aşırı Sıcaklıklar' },
           { code: '6.2', title: 'Deniz Seviyesinin Yükselmesi' },
-          { code: '6.3', title: 'Kıtlık ve Kaynak Stresi' }
+          { code: '6.3', title: 'Fırtına ve Aşırı Hava Olayları' },
+          { code: '6.4', title: 'Kıtlık ve Kaynak Stresi' }
         ]
       },
       {
@@ -639,7 +747,7 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
       },
       {
         num: '8',
-        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERLENDİRMESİ',
+        title: 'ÇOKLU RİSK BÖLGELERİ VE KÜMÜLATİF ETKİ DEĞERELENDİRMESİ',
         subSections: []
       },
       {
@@ -647,7 +755,8 @@ export const REPORT_DATA_RAW: Record<string, { label: string; chapters: ReportCh
         title: 'KAYNAKÇA',
         subSections: []
       }
-    ]  }
+    ]
+  }
 };
 
 // Export organized chapter groups with items

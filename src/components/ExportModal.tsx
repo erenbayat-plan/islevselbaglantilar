@@ -102,6 +102,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     window.print();
   };
 
+  const handleDownloadJSONBackup = () => {
+    const backupObj = {
+      timestamp: new Date().toISOString(),
+      group: groupName,
+      reportStatus,
+      analysisStatuses,
+      chapterNotes,
+      customSubSections
+    };
+    const jsonContent = JSON.stringify(backupObj, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Plan_2050_${groupName}_Sistem_Yedegi_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleCopySummary = () => {
     let summaryText = `İSTANBUL PLAN 2050 ÇEVRE DÜZENİ PLANI\n${groupName.toUpperCase()} RAPOR ÇATKISI & İLERLEME RAPORU\nTarih: ${new Date().toLocaleDateString('tr-TR')}\n\n`;
 
@@ -188,6 +208,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 <p>E-posta veya WhatsApp gruplarına yapıştırmak için tüm bölümlerin ilerleme özetini panoya kopyalayın.</p>
                 <button type="button" className="eoc-action-btn btn-amber" onClick={handleCopySummary}>
                   {copied ? 'Kopyalandı!' : 'Metin Olarak Kopyala'}
+                </button>
+              </div>
+            </div>
+
+            {/* Full JSON Backup */}
+            <div className="export-option-card">
+              <div className="eoc-content">
+                <h4>Sistem Durum Yedeği (.json) İndir</h4>
+                <p>Tüm yazar atamaları, ilerleme yüzdeleri, analiz durumları ve koordinasyon notlarını eksiksiz JSON dosyası olarak yedekleyin.</p>
+                <button type="button" className="eoc-action-btn btn-purple" onClick={handleDownloadJSONBackup} style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}>
+                  Sistem Yedeğini İndir (.json)
                 </button>
               </div>
             </div>

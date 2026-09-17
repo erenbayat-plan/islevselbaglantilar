@@ -35,7 +35,7 @@ import { ReportTracker } from './components/ReportTracker';
 import { HeaderCountdown } from './components/HeaderCountdown';
 import { HeadingFormData } from './components/HeadingModal';
 import { RiskMatrixView } from './components/RiskMatrixView';
-import { ReportItem, REPORT_CHAPTERS_MAP } from './reportData';
+import { ReportItem, REPORT_CHAPTERS_MAP, migrateReportStatus } from './reportData';
 import { SpatialHazardInventory, SPATIAL_CHAPTERS } from './components/SpatialHazardInventory';
 import { WorkflowBuilderTab } from './components/WorkflowBuilderTab';
 
@@ -204,7 +204,12 @@ export default function App() {
   const [reportStatus, setReportStatus] = useState<Record<string, ReportStatusItem>>(() => {
     try {
       const saved = localStorage.getItem(REPORT_STATUS_KEY);
-      return saved ? JSON.parse(saved) : {};
+      const initial = saved ? JSON.parse(saved) : {};
+      const { migrated, hadChanges } = migrateReportStatus(initial);
+      if (hadChanges) {
+        try { localStorage.setItem(REPORT_STATUS_KEY, JSON.stringify(migrated)); } catch (e) {}
+      }
+      return migrated;
     } catch { return {}; }
   });
   const [customSubSections, setCustomSubSections] = useState<Record<string, CustomSubSection[]>>(() => {
