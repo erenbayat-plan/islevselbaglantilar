@@ -16,7 +16,8 @@ import {
   LayoutGrid,
   Table as TableIcon,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  GitBranch
 } from 'lucide-react';
 import { DATA, STATUS_LABEL } from './data';
 import { 
@@ -36,6 +37,7 @@ import { HeadingFormData } from './components/HeadingModal';
 import { RiskMatrixView } from './components/RiskMatrixView';
 import { ReportItem, REPORT_CHAPTERS_MAP } from './reportData';
 import { SpatialHazardInventory, SPATIAL_CHAPTERS } from './components/SpatialHazardInventory';
+import { WorkflowBuilderTab } from './components/WorkflowBuilderTab';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -130,7 +132,7 @@ const CHAPTER_TITLES_FALLBACK: Record<string, string> = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'report'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'report' | 'workflow'>('inventory');
   const [activeGroup, setActiveGroup] = useState('ulasim');
   const [activeCode, setActiveCode] = useState('3.1');
   const [inventoryViewMode, setInventoryViewMode] = useState<'table' | 'matrix'>('table');
@@ -1329,7 +1331,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Navigation Tabs: Veri Envanteri vs Rapor Çatkısı */}
+      {/* Main Navigation Tabs: Veri Envanteri vs Rapor Çatkısı vs Analiz Akışı */}
       <nav className="app-tabs-nav" role="tablist" id="app-main-tabs">
         <button
           role="tab"
@@ -1348,6 +1350,15 @@ export default function App() {
         >
           <FileText size={14} />
           <span>Rapor Çatkısı & İlerleme</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'workflow'}
+          className={`app-tab-btn ${activeTab === 'workflow' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workflow')}
+        >
+          <GitBranch size={14} />
+          <span>Analiz Akışı</span>
         </button>
       </nav>
 
@@ -1371,8 +1382,13 @@ export default function App() {
         ))}
       </div>
 
-      {/* Tab 2: Rapor Çatkısı & İlerleme (Enhanced with 2nd/3rd/4th degree headings, editable titles & drag/drop) */}
-      {activeTab === 'report' ? (
+      {/* Tab 3: Analiz Akışı (ArcGIS Pro ModelBuilder Görsel Modelleme) */}
+      {activeTab === 'workflow' ? (
+        <WorkflowBuilderTab 
+          activeGroup={activeGroup}
+          onSelectGroup={(grp) => setActiveGroup(grp)}
+        />
+      ) : activeTab === 'report' ? (
         <ReportTracker 
           activeGroupKey={activeGroup}
           reportStatus={reportStatus}
