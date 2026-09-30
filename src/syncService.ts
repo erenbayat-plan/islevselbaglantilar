@@ -4,6 +4,7 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import type { ReportStatusType } from './reportData';
+import type { Workflow } from './workflowTypes';
 
 export interface ReportStatusItem {
   status: ReportStatusType;
@@ -54,6 +55,8 @@ export interface AppState {
   inventoryOrders?: Record<string, string[]>;
   customInventorySections?: Record<string, { code: string; title: string; id: string }[]>;
   inventorySectionOverrides?: Record<string, { code?: string; title?: string; deleted?: boolean }>;
+  workflows?: Record<string, Workflow>;
+  activeWorkflowId?: string;
   lastUpdated: number;
 }
 
@@ -116,6 +119,10 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
         chapterNotes: data.chapterNotes || {},
         chapterOrders: data.chapterOrders || {},
         inventoryOrders: data.inventoryOrders || {},
+        customInventorySections: data.customInventorySections || {},
+        inventorySectionOverrides: data.inventorySectionOverrides || {},
+        workflows: data.workflows || undefined,
+        activeWorkflowId: data.activeWorkflowId || undefined,
         lastUpdated: Number(data.lastUpdated) || 0
       };
     }
@@ -126,7 +133,7 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
 }
 
 export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
-  const payload = {
+  const payload: any = {
     workStatus: state.workStatus || {},
     customRows: state.customRows || {},
     rowOverrides: state.rowOverrides || {},
@@ -138,8 +145,13 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
     chapterNotes: state.chapterNotes || {},
     chapterOrders: state.chapterOrders || {},
     inventoryOrders: state.inventoryOrders || {},
+    customInventorySections: state.customInventorySections || {},
+    inventorySectionOverrides: state.inventorySectionOverrides || {},
     lastUpdated: state.lastUpdated || Date.now()
   };
+
+  if (state.workflows) payload.workflows = state.workflows;
+  if (state.activeWorkflowId) payload.activeWorkflowId = state.activeWorkflowId;
 
   // Broadcast to other tabs on same machine immediately
   broadcastLocalState(payload);
@@ -189,6 +201,10 @@ export function subscribeToCloudState(
           chapterNotes: data.chapterNotes || {},
           chapterOrders: data.chapterOrders || {},
           inventoryOrders: data.inventoryOrders || {},
+          customInventorySections: data.customInventorySections || {},
+          inventorySectionOverrides: data.inventorySectionOverrides || {},
+          workflows: data.workflows || undefined,
+          activeWorkflowId: data.activeWorkflowId || undefined,
           lastUpdated: Number(data.lastUpdated) || 0
         });
       }

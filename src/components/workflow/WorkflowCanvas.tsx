@@ -65,11 +65,51 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   canUndo,
   canRedo
 }) => {
-  // Canvas viewport transform
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 50, y: 50 });
+  // Canvas viewport transform with persistent workspace memory
+  const [zoom, setZoom] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(`spatial_wf_zoom_${workflow.id}`);
+      return saved ? Number(saved) : 1;
+    } catch { return 1; }
+  });
+  const [pan, setPan] = useState<{ x: number; y: number }>(() => {
+    try {
+      const saved = localStorage.getItem(`spatial_wf_pan_${workflow.id}`);
+      return saved ? JSON.parse(saved) : { x: 50, y: 50 };
+    } catch { return { x: 50, y: 50 }; }
+  });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Save viewport changes to persist workspace view
+  useEffect(() => {
+    try {
+      localStorage.setItem(`spatial_wf_zoom_${workflow.id}`, String(zoom));
+    } catch {}
+  }, [zoom, workflow.id]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`spatial_wf_pan_${workflow.id}`, JSON.stringify(pan));
+    } catch {}
+  }, [pan, workflow.id]);
+
+  // When active workflow changes, restore that workflow's last viewport
+  const prevWorkflowIdRef = useRef(workflow.id);
+  useEffect(() => {
+    if (prevWorkflowIdRef.current !== workflow.id) {
+      prevWorkflowIdRef.current = workflow.id;
+      try {
+        const savedZoom = localStorage.getItem(`spatial_wf_zoom_${workflow.id}`);
+        if (savedZoom) setZoom(Number(savedZoom));
+        const savedPan = localStorage.getItem(`spatial_wf_pan_${workflow.id}`);
+        if (savedPan) setPan(JSON.parse(savedPan));
+      } catch {}
+    }
+  }, [workflow.id]);
+
+  // Track latest nodes during dragging to prevent stale closure revert
+  const lastUpdatedNodesRef = useRef<WorkflowNode[] | null>(null);
 
   // Grid snap & chapter backdrop options
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -315,6 +355,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         return n;
       });
 
+      lastUpdatedNodesRef.current = updatedNodes;
       onUpdateWorkflow({ ...workflow, nodes: updatedNodes }, false);
       return;
     }
@@ -338,8 +379,13 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
     if (draggingNodeIds.length > 0) {
       setDraggingNodeIds([]);
-      // Commit final position to history
-      onUpdateWorkflow({ ...workflow }, true);
+      // Commit final position to history using latest tracked nodes
+      if (lastUpdatedNodesRef.current) {
+        onUpdateWorkflow({ ...workflow, nodes: lastUpdatedNodesRef.current }, true);
+        lastUpdatedNodesRef.current = null;
+      } else {
+        onUpdateWorkflow({ ...workflow }, true);
+      }
     }
 
     if (connectingSourceId) {

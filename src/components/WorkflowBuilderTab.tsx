@@ -14,13 +14,17 @@ import {
   Edit3, 
   ChevronDown, 
   FolderCheck,
-  Sparkles
+  Sparkles,
+  Save,
+  Download,
+  Upload,
+  Check
 } from 'lucide-react';
 
-const WORKFLOWS_STORAGE_KEY = 'spatial_workflows_v1';
-const ACTIVE_WORKFLOW_ID_KEY = 'spatial_active_workflow_id_v1';
+export const WORKFLOWS_STORAGE_KEY = 'spatial_workflows_v1';
+export const ACTIVE_WORKFLOW_ID_KEY = 'spatial_active_workflow_id_v1';
 
-const DEFAULT_GROUP_WORKFLOWS: Record<string, Workflow> = {
+export const DEFAULT_GROUP_WORKFLOWS: Record<string, Workflow> = {
   'wf-ulasim': {
     id: 'wf-ulasim',
     name: 'Ulaşım Sistemleri ve Ağ Dayanıklılığı Analiz Akışı',
@@ -65,14 +69,21 @@ const DEFAULT_GROUP_WORKFLOWS: Record<string, Workflow> = {
 interface WorkflowBuilderTabProps {
   activeGroup?: string;
   onSelectGroup?: (group: string) => void;
+  workflows?: Record<string, Workflow>;
+  onUpdateWorkflows?: (updated: Record<string, Workflow>, activeWfId?: string) => void;
 }
 
 export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
   activeGroup = 'ulasim',
-  onSelectGroup
+  onSelectGroup,
+  workflows: externalWorkflows,
+  onUpdateWorkflows
 }) => {
   // Load saved workflows or start with grouped workflows
   const [workflows, setWorkflows] = useState<Record<string, Workflow>>(() => {
+    if (externalWorkflows && Object.keys(externalWorkflows).length > 0) {
+      return externalWorkflows;
+    }
     try {
       const saved = localStorage.getItem(WORKFLOWS_STORAGE_KEY);
       if (saved) {
@@ -87,24 +98,34 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
     return { ...DEFAULT_GROUP_WORKFLOWS };
   });
 
+  // Sync external workflows if passed and updated
+  useEffect(() => {
+    if (externalWorkflows && Object.keys(externalWorkflows).length > 0) {
+      setWorkflows(externalWorkflows);
+    }
+  }, [externalWorkflows]);
+
   const [activeWorkflowId, setActiveWorkflowId] = useState<string>(() => {
-    const targetId = `wf-${activeGroup}`;
-    if (workflows[targetId]) return targetId;
     try {
       const savedId = localStorage.getItem(ACTIVE_WORKFLOW_ID_KEY);
       if (savedId && workflows[savedId] && savedId !== 'wf-hepsi') return savedId;
     } catch {}
+    const targetId = `wf-${activeGroup}`;
+    if (workflows[targetId]) return targetId;
     return Object.keys(workflows)[0] || 'wf-ulasim';
   });
 
   // Current active workflow
   const activeWorkflow = workflows[activeWorkflowId] || (Object.values(workflows) as Workflow[])[0];
 
-  // Sync active workflow when activeGroup changes from the outside navigation bar
+  // Sync active workflow only when activeGroup actually changes externally
+  const prevGroupRef = useRef(activeGroup);
   useEffect(() => {
-    if (!activeGroup) return;
+    if (prevGroupRef.current === activeGroup) return;
+    prevGroupRef.current = activeGroup;
+
     const currentWf = workflows[activeWorkflowId];
-    if (currentWf && currentWf.workingGroup === activeGroup) {
+    if (currentWf && (currentWf.workingGroup === activeGroup || currentWf.workingGroup === 'hepsi')) {
       return;
     }
     const targetId = `wf-${activeGroup}`;
@@ -120,7 +141,7 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
     }
-  }, [activeGroup, workflows]);
+  }, [activeGroup, activeWorkflowId, workflows]);
 
   // Selection states
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -138,7 +159,14 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
   const [history, setHistory] = useState<Workflow[]>([]);
   const [redoStack, setRedoStack] = useState<Workflow[]>([]);
 
-  // Persist workflows
+  // Workspace save state & feedback
+  const [lastSavedTime, setLastSavedTime] = useState<string>(() => 
+    new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  );
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const fileImportRef = useRef<HTMLInputElement>(null);
+
+  // Persist workflows to localStorage & notify parent
   useEffect(() => {
     try {
       localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(workflows));
@@ -166,14 +194,82 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
       setRedoStack([]);
     }
 
-    setWorkflows(prev => ({
-      ...prev,
+    const updatedMap = {
+      ...workflows,
       [updated.id]: {
         ...updated,
         updatedAt: Date.now()
       }
-    }));
-  }, [activeWorkflow]);
+    };
+
+    setWorkflows(updatedMap);
+    try {
+      localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(updatedMap));
+    } catch (e) {}
+
+    onUpdateWorkflows?.(updatedMap, activeWorkflowId);
+    setLastSavedTime(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+  }, [activeWorkflow, workflows, activeWorkflowId, onUpdateWorkflows]);
+
+  // Manual save triggering full local and cloud persist
+  const handleManualSave = () => {
+    try {
+      localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(workflows));
+      localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, activeWorkflowId);
+    } catch (e) {}
+    onUpdateWorkflows?.(workflows, activeWorkflowId);
+    setLastSavedTime(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+    setShowSaveToast(true);
+    setTimeout(() => setShowSaveToast(false), 2500);
+  };
+
+  // Export current workflow as JSON file
+  const handleExportWorkflowJSON = () => {
+    if (!activeWorkflow) return;
+    const blob = new Blob([JSON.stringify(activeWorkflow, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `is_akisi_${activeWorkflow.id}_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import workflow from JSON file
+  const handleImportWorkflowJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed && parsed.id && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
+          const updatedMap = {
+            ...workflows,
+            [parsed.id]: {
+              ...parsed,
+              updatedAt: Date.now()
+            }
+          };
+          setWorkflows(updatedMap);
+          setActiveWorkflowId(parsed.id);
+          try {
+            localStorage.setItem(WORKFLOWS_STORAGE_KEY, JSON.stringify(updatedMap));
+            localStorage.setItem(ACTIVE_WORKFLOW_ID_KEY, parsed.id);
+          } catch (err) {}
+          onUpdateWorkflows?.(updatedMap, parsed.id);
+          setShowSaveToast(true);
+          setTimeout(() => setShowSaveToast(false), 2500);
+        } else {
+          alert('Geçersiz iş akışı dosyası formatı.');
+        }
+      } catch (err) {
+        alert('Dosya okunamadı veya JSON biçimi bozuk.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Undo
   const handleUndo = useCallback(() => {
@@ -481,8 +577,115 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
           </div>
         </div>
 
-        {/* Workflow Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Hidden file input for importing JSON */}
+        <input 
+          type="file" 
+          ref={fileImportRef} 
+          style={{ display: 'none' }} 
+          accept=".json" 
+          onChange={handleImportWorkflowJSON} 
+        />
+
+        {/* Workspace Persistence & Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Live Workspace Auto-Save Status */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '4px 10px', 
+              borderRadius: '6px', 
+              backgroundColor: '#F0FDF4', 
+              border: '1px solid #BBF7D0', 
+              fontSize: '11px', 
+              color: '#166534', 
+              fontWeight: 600 
+            }}
+            title="Tüm kutu hareketleri, bağlantılar ve düzenlemeler anlık olarak hafızaya ve buluta kaydedilir"
+          >
+            <span 
+              style={{ 
+                width: '7px', 
+                height: '7px', 
+                borderRadius: '50%', 
+                backgroundColor: '#22C55E', 
+                boxShadow: '0 0 6px #22C55E',
+                display: 'inline-block' 
+              }} 
+            />
+            <span>Çalışma Alanı Aktif</span>
+            <span style={{ color: '#15803D', fontWeight: 400 }}>({lastSavedTime})</span>
+          </div>
+
+          <button
+            type="button"
+            title="Çalışma alanını anında kalıcı olarak kaydet"
+            onClick={handleManualSave}
+            style={{
+              padding: '5px 9px',
+              borderRadius: '5px',
+              border: '1px solid #86EFAC',
+              background: '#F0FDF4',
+              color: '#166534',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Save size={12} />
+            <span>Kaydet</span>
+          </button>
+
+          <button
+            type="button"
+            title="Mevcut iş akışını JSON dosyası olarak indir"
+            onClick={handleExportWorkflowJSON}
+            style={{
+              padding: '5px 8px',
+              borderRadius: '5px',
+              border: '1px solid #CBD5E1',
+              background: '#FFFFFF',
+              color: '#334155',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Download size={12} />
+            <span>İndir</span>
+          </button>
+
+          <button
+            type="button"
+            title="JSON formatında kaydedilmiş iş akışını çalışma alanına yükle"
+            onClick={() => fileImportRef.current?.click()}
+            style={{
+              padding: '5px 8px',
+              borderRadius: '5px',
+              border: '1px solid #CBD5E1',
+              background: '#FFFFFF',
+              color: '#334155',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Upload size={12} />
+            <span>Yükle</span>
+          </button>
+
+          <div style={{ width: '1px', height: '16px', backgroundColor: '#E2E8F0', margin: '0 2px' }} />
+
           <button
             type="button"
             title="İş Akışı Bilgilerini Düzenle"
@@ -580,6 +783,32 @@ export const WorkflowBuilderTab: React.FC<WorkflowBuilderTabProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Save feedback toast */}
+      {showSaveToast && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '55px',
+            right: '24px',
+            backgroundColor: '#0F172A',
+            color: '#F8FAFC',
+            padding: '8px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 100,
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <Check size={14} style={{ color: '#4ADE80' }} />
+          <span>Çalışma alanı başarıyla kaydedildi</span>
+        </div>
+      )}
 
       {/* Main Builder Workspace Body */}
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>

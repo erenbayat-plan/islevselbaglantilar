@@ -34,10 +34,7 @@ import {
 import { ReportTracker } from './components/ReportTracker';
 import { HeaderCountdown } from './components/HeaderCountdown';
 import { HeadingFormData } from './components/HeadingModal';
-import { RiskMatrixView } from './components/RiskMatrixView';
 import { ReportItem, REPORT_CHAPTERS_MAP, migrateReportStatus } from './reportData';
-import { SpatialHazardInventory, SPATIAL_CHAPTERS } from './components/SpatialHazardInventory';
-import { WorkflowBuilderTab } from './components/WorkflowBuilderTab';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -1281,7 +1278,7 @@ export default function App() {
               <h1 className="toolbar-title">Plan 2050 — Afet, İklim Krizi & Rapor Portalı</h1>
               <span className="toolbar-env-tag">İSTANBUL ÇDP</span>
             </div>
-            <div className="toolbar-sub">Ulaşım · Teknik Altyapı · Lojistik Veri Envanteri ve Rapor Çatkısı</div>
+            <div className="toolbar-sub">Ulaşım · Teknik Altyapı · Lojistik Rapor Çatkısı ve İlerleme Takibi</div>
           </div>
         </div>
 
@@ -1310,64 +1307,10 @@ export default function App() {
               </button>
             )}
           </div>
-
-          {/* Stats Chips (Active in Veri Envanteri Tab) */}
-          {activeTab === 'inventory' && (
-            <div className="toolbar-stats-row">
-              <div className="stat-chip" title="Tamamlanan veri iş durumu">
-                <span className="stat-chip-label">İş Durumu</span>
-                <span className="stat-chip-val">
-                  <b className="val-accent">{overallCounts.workDone}</b>
-                  <span className="val-divider">/</span>
-                  <span className="val-total">{overallCounts.workTotal}</span>
-                </span>
-              </div>
-              <div className="stat-chip" title="Kaynak verisi varlık durumu">
-                <span className="stat-chip-label">Kaynak</span>
-                <span className="stat-chip-val">
-                  <span style={{ color: '#34D399', fontWeight: 600 }}>{overallCounts.srcVar}</span>
-                  <span style={{ color: '#94A3B8', fontSize: '10px', margin: '0 3px' }}>Var ·</span>
-                  <span style={{ color: '#F87171', fontWeight: 600 }}>{overallCounts.srcYok}</span>
-                  <span style={{ color: '#94A3B8', fontSize: '10px', marginLeft: '3px' }}>Yok</span>
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
-      {/* Main Navigation Tabs: Veri Envanteri vs Rapor Çatkısı vs Analiz Akışı */}
-      <nav className="app-tabs-nav" role="tablist" id="app-main-tabs">
-        <button
-          role="tab"
-          aria-selected={activeTab === 'inventory'}
-          className={`app-tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
-        >
-          <Layers size={14} />
-          <span>Veri Envanteri & Analizler</span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === 'report'}
-          className={`app-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
-          onClick={() => setActiveTab('report')}
-        >
-          <FileText size={14} />
-          <span>Rapor Çatkısı & İlerleme</span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === 'workflow'}
-          className={`app-tab-btn ${activeTab === 'workflow' ? 'active' : ''}`}
-          onClick={() => setActiveTab('workflow')}
-        >
-          <GitBranch size={14} />
-          <span>Analiz Akışı</span>
-        </button>
-      </nav>
-
-      {/* Secondary Group Selector (Ulaşım, Teknik Altyapı, Lojistik) */}
+      {/* Group Selector (Ulaşım, Teknik Altyapı, Lojistik) */}
       <div className="group-nav-bar" id="app-group-selector">
         {Object.keys(DATA).map(g => (
           <button
@@ -1387,264 +1330,31 @@ export default function App() {
         ))}
       </div>
 
-      {/* Tab 3: Analiz Akışı (ArcGIS Pro ModelBuilder Görsel Modelleme) */}
-      {activeTab === 'workflow' ? (
-        <WorkflowBuilderTab 
-          activeGroup={activeGroup}
-          onSelectGroup={(grp) => setActiveGroup(grp)}
-        />
-      ) : activeTab === 'report' ? (
-        <ReportTracker 
-          activeGroupKey={activeGroup}
-          reportStatus={reportStatus}
-          customSubSections={customSubSections}
-          sectionOverrides={sectionOverrides}
-          analysisStatuses={analysisStatuses}
-          chapterNotes={chapterNotes}
-          chapterOrders={chapterOrders}
-          onUpdateStatus={handleUpdateReportStatus}
-          onUpdateAnalysisStatus={handleUpdateAnalysisStatus}
-          onAddSubSection={handleAddSubSection}
-          onEditSubSection={handleEditSubSection}
-          onDeleteSubSection={handleDeleteSubSection}
-          onEditSubSectionGroup={handleEditSubSectionGroup}
-          onDeleteSubSectionGroup={handleDeleteSubSectionGroup}
-          onAddAnalysis={handleAddAnalysis}
-          onEditAnalysis={handleEditAnalysis}
-          onDeleteAnalysis={handleDeleteAnalysis}
-          onUpdateChapterNotes={handleUpdateChapterNotes}
-          onReorderItems={handleReorderItems}
-          onResetAll={handleResetAll}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
-      ) : (
-        /* Tab 1: Veri Envanteri & Analizler (Mekânsal Afet & Risk Matrisleri: 4, 5, 6, 8) */
-        <div style={{ padding: '20px 24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
-          <SpatialHazardInventory
-            activeGroup={activeGroup}
-            data={DATA}
-            workStatus={workStatus}
-            rowOverrides={rowOverrides}
-            customRows={customRows}
-            onUpdateWorkStatus={handleUpdateWork}
-            onUpdateRowOverride={handleUpdateRow}
-            onAddCustomRow={(g, secCode, name, compCode) => {
-              const fullKey = compCode ? `${g}::${secCode}::${compCode}` : `${g}::${secCode}`;
-              const newId = Date.now();
-              const newItem = { id: newId, name, v: true };
-              const currentList = customRows[fullKey] || [];
-              const updatedList = [...currentList, newItem];
-              const updatedCustomRows = { ...customRows, [fullKey]: updatedList };
-              setCustomRows(updatedCustomRows);
-              try {
-                localStorage.setItem(CUSTOM_KEY, JSON.stringify(updatedCustomRows));
-              } catch (e) {}
-              triggerCloudSync({ customRows: updatedCustomRows });
-            }}
-            onDeleteRow={handleDeleteRow}
-          />
-        </div>
-      )}
-
-      {/* Modal: Add Inventory 2nd Degree Section */}
-      {showAddSectionModal && (
-        <div className="custom-modal-backdrop" onClick={() => setShowAddSectionModal(false)}>
-          <div className="custom-modal-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-            <div className="custom-modal-header">
-              <div className="cmh-title-row">
-                <div className="cmh-icon-badge">
-                  <Plus size={16} />
-                </div>
-                <div>
-                  <h3 className="custom-modal-title">{activeGroupData.label} — 2. Derece Bölüm Ekle</h3>
-                  <div className="custom-modal-subtitle">Yeni bölüm kodu ve başlığını belirleyin</div>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                className="custom-modal-close" 
-                onClick={() => setShowAddSectionModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="custom-modal-body">
-              <div className="form-field-group">
-                <label className="form-label">
-                  Bölüm Kodu <span className="req-star">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input code-input"
-                  placeholder="Örn: 4.5 veya 4.6"
-                  value={newSectionCode}
-                  onChange={e => setNewSectionCode(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className="form-field-group">
-                <label className="form-label">
-                  Bölüm Başlığı <span className="req-star">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Örn: Bisiklet ve Mikromobilite Ağı"
-                  value={newSectionTitle}
-                  onChange={e => setNewSectionTitle(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleAddInventorySection(activeGroup, newSectionCode, newSectionTitle);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="custom-modal-footer">
-              <button
-                type="button"
-                className="btn-modal-cancel"
-                onClick={() => setShowAddSectionModal(false)}
-              >
-                İptal
-              </button>
-              <button
-                type="button"
-                className="btn-modal-submit"
-                disabled={!newSectionCode.trim() || !newSectionTitle.trim()}
-                onClick={() => handleAddInventorySection(activeGroup, newSectionCode, newSectionTitle)}
-              >
-                Bölüm Ekle
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Edit Inventory Section */}
-      {editingSectionModal && (
-        <div className="custom-modal-backdrop" onClick={() => setEditingSectionModal(null)}>
-          <div className="custom-modal-dialog" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-            <div className="custom-modal-header">
-              <div className="cmh-title-row">
-                <div className="cmh-icon-badge">
-                  <Pencil size={16} />
-                </div>
-                <div>
-                  <h3 className="custom-modal-title">Bölüm Başlığını Düzenle</h3>
-                  <div className="custom-modal-subtitle">{editingSectionModal.originalCode} kodlu bölüm</div>
-                </div>
-              </div>
-              <button 
-                type="button" 
-                className="custom-modal-close" 
-                onClick={() => setEditingSectionModal(null)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="custom-modal-body">
-              <div className="form-field-group">
-                <label className="form-label">
-                  Bölüm Kodu <span className="req-star">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input code-input"
-                  value={editingSectionModal.code}
-                  onChange={e => setEditingSectionModal({ ...editingSectionModal, code: e.target.value })}
-                />
-              </div>
-
-              <div className="form-field-group">
-                <label className="form-label">
-                  Bölüm Başlığı <span className="req-star">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editingSectionModal.title}
-                  onChange={e => setEditingSectionModal({ ...editingSectionModal, title: e.target.value })}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      handleEditInventorySection(
-                        activeGroup,
-                        editingSectionModal.originalCode,
-                        editingSectionModal.code,
-                        editingSectionModal.title
-                      );
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className="custom-modal-footer">
-              <button
-                type="button"
-                className="btn-modal-cancel"
-                onClick={() => setEditingSectionModal(null)}
-              >
-                İptal
-              </button>
-              <button
-                type="button"
-                className="btn-modal-submit"
-                disabled={!editingSectionModal.code.trim() || !editingSectionModal.title.trim()}
-                onClick={() => {
-                  handleEditInventorySection(
-                    activeGroup,
-                    editingSectionModal.originalCode,
-                    editingSectionModal.code,
-                    editingSectionModal.title
-                  );
-                }}
-              >
-                Kaydet
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Delete Section Confirmation */}
-      {deletingSectionCode && (
-        <div className="custom-modal-backdrop" onClick={() => setDeletingSectionCode(null)}>
-          <div className="custom-modal-dialog confirm-dialog" onClick={e => e.stopPropagation()}>
-            <div className="confirm-modal-header">
-              <div className="confirm-icon-box variant-danger">
-                <Trash2 size={20} />
-              </div>
-              <div>
-                <h3 className="confirm-title">Bölüm Silinsin mi?</h3>
-                <p className="confirm-message">
-                  <strong>{deletingSectionCode}</strong> kodlu bölümü ve altındaki tüm veri kalemlerini kaldırmak istediğinize emin misiniz?
-                </p>
-              </div>
-            </div>
-            <div className="confirm-modal-actions">
-              <button
-                type="button"
-                className="btn-modal-cancel"
-                onClick={() => setDeletingSectionCode(null)}
-              >
-                Vazgeç
-              </button>
-              <button
-                type="button"
-                className="btn-modal-confirm variant-danger"
-                onClick={() => handleDeleteInventorySection(activeGroup, deletingSectionCode)}
-              >
-                Evet, Sil
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Rapor Çatkısı & İlerleme Portalı */}
+      <ReportTracker 
+        activeGroupKey={activeGroup}
+        reportStatus={reportStatus}
+        customSubSections={customSubSections}
+        sectionOverrides={sectionOverrides}
+        analysisStatuses={analysisStatuses}
+        chapterNotes={chapterNotes}
+        chapterOrders={chapterOrders}
+        onUpdateStatus={handleUpdateReportStatus}
+        onUpdateAnalysisStatus={handleUpdateAnalysisStatus}
+        onAddSubSection={handleAddSubSection}
+        onEditSubSection={handleEditSubSection}
+        onDeleteSubSection={handleDeleteSubSection}
+        onEditSubSectionGroup={handleEditSubSectionGroup}
+        onDeleteSubSectionGroup={handleDeleteSubSectionGroup}
+        onAddAnalysis={handleAddAnalysis}
+        onEditAnalysis={handleEditAnalysis}
+        onDeleteAnalysis={handleDeleteAnalysis}
+        onUpdateChapterNotes={handleUpdateChapterNotes}
+        onReorderItems={handleReorderItems}
+        onResetAll={handleResetAll}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
     </div>
   );
 }

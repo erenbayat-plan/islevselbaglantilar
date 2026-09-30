@@ -17,7 +17,7 @@ export const HeaderCountdown: React.FC = () => {
     <div 
       className="header-countdown-widget" 
       id="header-countdown-widget"
-      title="Rapor Teslim Tarihi: 15 Ekim 2026 · 17:00 (Hafta sonları dahil takvim süresi)"
+      title="Rapor Teslim Tarihi: 30 Ekim 2026 · 17:00 (Hafta sonları dahil takvim süresi)"
     >
       <div className="hc-badge">
         <span className="hc-badge-title">TESLİME</span>

@@ -11,8 +11,8 @@ export function pad2(n: number): string {
 }
 
 export function getCalendarCountdown(now: number = Date.now()): CountdownResult {
-  // Target: 15 Ekim 2026 17:00
-  const target = new Date('2026-10-15T17:00:00').getTime();
+  // Target: 30 Ekim 2026 17:00
+  const target = new Date('2026-10-30T17:00:00').getTime();
   const diff = Math.max(0, target - now);
 
   const seconds = Math.floor((diff / 1000) % 60);
