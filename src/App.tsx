@@ -35,6 +35,7 @@ import { ReportTracker } from './components/ReportTracker';
 import { HeaderCountdown } from './components/HeaderCountdown';
 import { HeadingFormData } from './components/HeadingModal';
 import { ReportItem, REPORT_CHAPTERS_MAP, migrateReportStatus } from './reportData';
+import { AnalysisFlowTab } from './components/AnalysisFlowTab';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -129,7 +130,7 @@ const CHAPTER_TITLES_FALLBACK: Record<string, string> = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'report' | 'workflow'>('inventory');
+  const [activeTab, setActiveTab] = useState<'report' | 'workflow'>('workflow');
   const [activeGroup, setActiveGroup] = useState('ulasim');
   const [activeCode, setActiveCode] = useState('3.1');
   const [inventoryViewMode, setInventoryViewMode] = useState<'table' | 'matrix'>('table');
@@ -1310,51 +1311,82 @@ export default function App() {
         </div>
       </header>
 
-      {/* Group Selector (Ulaşım, Teknik Altyapı, Lojistik) */}
-      <div className="group-nav-bar" id="app-group-selector">
-        {Object.keys(DATA).map(g => (
-          <button
-            key={g}
-            type="button"
-            className={`group-pill-btn ${activeGroup === g ? 'active' : ''}`}
-            onClick={() => {
-              setActiveGroup(g);
-              const groupSecs = getGroupSections(g);
-              if (groupSecs[0]) {
-                setActiveCode(groupSecs[0].code);
-              }
-            }}
-          >
-            {DATA[g].label}
-          </button>
-        ))}
-      </div>
+      {/* Main Navigation Tabs: Rapor Çatkısı vs Analiz Akışı */}
+      <nav className="app-tabs-nav" role="tablist" id="app-main-tabs">
+        <button
+          role="tab"
+          aria-selected={activeTab === 'workflow'}
+          className={`app-tab-btn ${activeTab === 'workflow' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workflow')}
+        >
+          <GitBranch size={14} />
+          <span>Analiz Akışı</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'report'}
+          className={`app-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
+          onClick={() => setActiveTab('report')}
+        >
+          <FileText size={14} />
+          <span>Rapor Çatkısı & İlerleme</span>
+        </button>
+      </nav>
 
-      {/* Rapor Çatkısı & İlerleme Portalı */}
-      <ReportTracker 
-        activeGroupKey={activeGroup}
-        reportStatus={reportStatus}
-        customSubSections={customSubSections}
-        sectionOverrides={sectionOverrides}
-        analysisStatuses={analysisStatuses}
-        chapterNotes={chapterNotes}
-        chapterOrders={chapterOrders}
-        onUpdateStatus={handleUpdateReportStatus}
-        onUpdateAnalysisStatus={handleUpdateAnalysisStatus}
-        onAddSubSection={handleAddSubSection}
-        onEditSubSection={handleEditSubSection}
-        onDeleteSubSection={handleDeleteSubSection}
-        onEditSubSectionGroup={handleEditSubSectionGroup}
-        onDeleteSubSectionGroup={handleDeleteSubSectionGroup}
-        onAddAnalysis={handleAddAnalysis}
-        onEditAnalysis={handleEditAnalysis}
-        onDeleteAnalysis={handleDeleteAnalysis}
-        onUpdateChapterNotes={handleUpdateChapterNotes}
-        onReorderItems={handleReorderItems}
-        onResetAll={handleResetAll}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+      {/* When in Report Tracker mode, display Group Selector */}
+      {activeTab === 'report' && (
+        <div className="group-nav-bar" id="app-group-selector">
+          {Object.keys(DATA).map(g => (
+            <button
+              key={g}
+              type="button"
+              className={`group-pill-btn ${activeGroup === g ? 'active' : ''}`}
+              onClick={() => {
+                setActiveGroup(g);
+                const groupSecs = getGroupSections(g);
+                if (groupSecs[0]) {
+                  setActiveCode(groupSecs[0].code);
+                }
+              }}
+            >
+              {DATA[g].label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tab Content: Analiz Akışı (Miro-like) or Rapor Çatkısı */}
+      {activeTab === 'workflow' ? (
+        <AnalysisFlowTab 
+          activeGroup={activeGroup}
+          onSelectGroup={(grp) => setActiveGroup(grp)}
+        />
+      ) : (
+        <ReportTracker 
+          activeGroupKey={activeGroup}
+          reportStatus={reportStatus}
+          customSubSections={customSubSections}
+          sectionOverrides={sectionOverrides}
+          analysisStatuses={analysisStatuses}
+          chapterNotes={chapterNotes}
+          chapterOrders={chapterOrders}
+          onUpdateStatus={handleUpdateReportStatus}
+          onUpdateAnalysisStatus={handleUpdateAnalysisStatus}
+          onAddSubSection={handleAddSubSection}
+          onEditSubSection={handleEditSubSection}
+          onDeleteSubSection={handleDeleteSubSection}
+          onEditSubSectionGroup={handleEditSubSectionGroup}
+          onDeleteSubSectionGroup={handleDeleteSubSectionGroup}
+          onAddAnalysis={handleAddAnalysis}
+          onEditAnalysis={handleEditAnalysis}
+          onDeleteAnalysis={handleDeleteAnalysis}
+          onUpdateChapterNotes={handleUpdateChapterNotes}
+          onReorderItems={handleReorderItems}
+          onResetAll={handleResetAll}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
+      )}
     </div>
   );
 }
