@@ -36,6 +36,7 @@ import { HeaderCountdown } from './components/HeaderCountdown';
 import { HeadingFormData } from './components/HeadingModal';
 import { ReportItem, REPORT_CHAPTERS_MAP, migrateReportStatus } from './reportData';
 import { AnalysisFlowTab } from './components/AnalysisFlowTab';
+import { DiagramData, getInitialDiagramForGroup } from './components/workflow/diagramTypes';
 
 function toTitleCase(str: string) {
   if (!str) return '';
@@ -240,6 +241,28 @@ export default function App() {
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
+
+  const FLOWCHARTS_KEY = 'plan2050_analysis_flowcharts_v2';
+  const [flowcharts, setFlowcharts] = useState<Record<string, DiagramData>>(() => {
+    try {
+      const saved = localStorage.getItem(FLOWCHARTS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ulasim: parsed.ulasim || getInitialDiagramForGroup('ulasim'),
+            teknik: parsed.teknik || getInitialDiagramForGroup('teknik'),
+            lojistik: parsed.lojistik || getInitialDiagramForGroup('lojistik')
+          };
+        }
+      }
+    } catch { return {}; }
+    return {
+      ulasim: getInitialDiagramForGroup('ulasim'),
+      teknik: getInitialDiagramForGroup('teknik'),
+      lojistik: getInitialDiagramForGroup('lojistik')
+    };
+  });
   
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'saving' | 'connected'>('connected');
   const localVersionRef = useRef<number>((() => {
@@ -265,6 +288,7 @@ export default function App() {
     inventoryOrders,
     customInventorySections,
     inventorySectionOverrides,
+    flowcharts,
     lastUpdated: localVersionRef.current
   });
 
@@ -283,6 +307,7 @@ export default function App() {
       inventoryOrders,
       customInventorySections,
       inventorySectionOverrides,
+      flowcharts,
       lastUpdated: localVersionRef.current
     };
   }, [
@@ -298,7 +323,8 @@ export default function App() {
     chapterOrders,
     inventoryOrders,
     customInventorySections,
-    inventorySectionOverrides
+    inventorySectionOverrides,
+    flowcharts
   ]);
 
   // Local storage caching
@@ -341,6 +367,9 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(inventorySectionOverrides)); } catch (e) {}
   }, [inventorySectionOverrides]);
+  useEffect(() => {
+    try { localStorage.setItem(FLOWCHARTS_KEY, JSON.stringify(flowcharts)); } catch (e) {}
+  }, [flowcharts]);
 
   // Global Real-time Multi-User Cloud & Multi-Tab Sync
   useEffect(() => {
@@ -351,14 +380,8 @@ export default function App() {
       const incomingTime = Number(cloudData.lastUpdated) || 0;
       const localTime = localVersionRef.current;
 
-      // If local state is strictly newer than what came from cloud, do not overwrite local changes
-      if (incomingTime > 0 && localTime > 0 && incomingTime < localTime) {
-        console.log(`Local state is newer (${localTime} > ${incomingTime}), syncing local to cloud...`);
-        const payload: AppState = {
-          ...stateRef.current,
-          lastUpdated: localTime
-        };
-        pushGlobalCloudState(payload);
+      // Ignore if snapshot is from our exact same local write
+      if (incomingTime > 0 && incomingTime === localTime) {
         return;
       }
 
@@ -477,6 +500,13 @@ export default function App() {
           return merged;
         });
       }
+      if (cloudData.flowcharts !== undefined) {
+        setFlowcharts(prev => {
+          const merged = { ...prev, ...cloudData.flowcharts };
+          try { localStorage.setItem(FLOWCHARTS_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
+      }
       setCloudSyncStatus('synced');
     };
 
@@ -495,6 +525,7 @@ export default function App() {
       if (tabState.inventoryOrders) setInventoryOrders(tabState.inventoryOrders);
       if (tabState.customInventorySections) setCustomInventorySections(tabState.customInventorySections);
       if (tabState.inventorySectionOverrides) setInventorySectionOverrides(tabState.inventorySectionOverrides);
+      if (tabState.flowcharts) setFlowcharts(prev => ({ ...prev, ...tabState.flowcharts }));
       setCloudSyncStatus('synced');
     });
 
@@ -534,6 +565,7 @@ export default function App() {
       inventoryOrders: nextState?.inventoryOrders ?? stateRef.current.inventoryOrders,
       customInventorySections: nextState?.customInventorySections ?? stateRef.current.customInventorySections,
       inventorySectionOverrides: nextState?.inventorySectionOverrides ?? stateRef.current.inventorySectionOverrides,
+      flowcharts: nextState?.flowcharts ?? stateRef.current.flowcharts,
       lastUpdated: newVersion
     };
 
@@ -552,6 +584,7 @@ export default function App() {
     if (nextState?.inventoryOrders) try { localStorage.setItem(INVENTORY_ORDERS_KEY, JSON.stringify(nextState.inventoryOrders)); } catch (e) {}
     if (nextState?.customInventorySections) try { localStorage.setItem(CUSTOM_INVENTORY_SECTIONS_KEY, JSON.stringify(nextState.customInventorySections)); } catch (e) {}
     if (nextState?.inventorySectionOverrides) try { localStorage.setItem(INVENTORY_SECTION_OVERRIDES_KEY, JSON.stringify(nextState.inventorySectionOverrides)); } catch (e) {}
+    if (nextState?.flowcharts) try { localStorage.setItem(FLOWCHARTS_KEY, JSON.stringify(nextState.flowcharts)); } catch (e) {}
 
     queueGlobalCloudPush(
       () => fullPayload,
@@ -559,6 +592,18 @@ export default function App() {
         setCloudSyncStatus(status === 'saving' ? 'saving' : 'synced');
       }
     );
+  };
+
+  const handleUpdateFlowchart = (groupKey: string, updatedDiagram: DiagramData) => {
+    const updated = {
+      ...(stateRef.current.flowcharts || flowcharts),
+      [groupKey]: updatedDiagram
+    };
+    setFlowcharts(updated);
+    try {
+      localStorage.setItem(FLOWCHARTS_KEY, JSON.stringify(updated));
+    } catch (e) {}
+    triggerCloudSync({ flowcharts: updated });
   };
 
   // --- Veri Envanteri Helpers ---
@@ -1286,6 +1331,36 @@ export default function App() {
         <div className="toolbar-spacer"></div>
 
         <div className="toolbar-actions-group">
+          {/* Live Cloud Multi-Browser Sync Indicator */}
+          <div 
+            className="cloud-sync-status-chip"
+            title={cloudSyncStatus === 'saving' ? 'Değişiklikler buluta kaydediliyor...' : 'Tüm tarayıcılarda ve cihazlarda anlık eşzamanlı aktif'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 600,
+              background: cloudSyncStatus === 'saving' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              color: cloudSyncStatus === 'saving' ? '#FBBF24' : '#34D399',
+              border: cloudSyncStatus === 'saving' ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span 
+              style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: cloudSyncStatus === 'saving' ? '#FBBF24' : '#34D399',
+                boxShadow: cloudSyncStatus === 'saving' ? '0 0 8px #FBBF24' : '0 0 8px #34D399'
+              }}
+            />
+            <span>{cloudSyncStatus === 'saving' ? 'Kaydediliyor…' : 'Canlı Eşzamanlı'}</span>
+          </div>
+
           {/* Header Countdown Timer Widget */}
           <HeaderCountdown />
 
@@ -1360,6 +1435,9 @@ export default function App() {
         <AnalysisFlowTab 
           activeGroup={activeGroup}
           onSelectGroup={(grp) => setActiveGroup(grp)}
+          diagramsByGroup={flowcharts}
+          onUpdateDiagram={handleUpdateFlowchart}
+          syncStatus={cloudSyncStatus}
         />
       ) : (
         <ReportTracker 

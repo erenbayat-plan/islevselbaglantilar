@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import type { ReportStatusType } from './reportData';
 import type { Workflow } from './workflowTypes';
+import type { DiagramData } from './components/workflow/diagramTypes';
 
 export interface ReportStatusItem {
   status: ReportStatusType;
@@ -57,6 +58,7 @@ export interface AppState {
   inventorySectionOverrides?: Record<string, { code?: string; title?: string; deleted?: boolean }>;
   workflows?: Record<string, Workflow>;
   activeWorkflowId?: string;
+  flowcharts?: Record<string, DiagramData>;
   lastUpdated: number;
 }
 
@@ -123,6 +125,7 @@ export async function fetchGlobalCloudState(): Promise<AppState | null> {
         inventorySectionOverrides: data.inventorySectionOverrides || {},
         workflows: data.workflows || undefined,
         activeWorkflowId: data.activeWorkflowId || undefined,
+        flowcharts: data.flowcharts || undefined,
         lastUpdated: Number(data.lastUpdated) || 0
       };
     }
@@ -152,6 +155,7 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
 
   if (state.workflows) payload.workflows = state.workflows;
   if (state.activeWorkflowId) payload.activeWorkflowId = state.activeWorkflowId;
+  if (state.flowcharts) payload.flowcharts = state.flowcharts;
 
   // Broadcast to other tabs on same machine immediately
   broadcastLocalState(payload);
@@ -165,19 +169,33 @@ export async function pushGlobalCloudState(state: AppState): Promise<boolean> {
   }
 }
 
+let pushDebounceTimer: any = null;
+
 export function queueGlobalCloudPush(
   getState: () => AppState,
   onStatusChange?: (status: 'saving' | 'synced' | 'error') => void
 ) {
   lastGetStateFn = getState;
   if (onStatusChange) onStatusChange('saving');
-  
-  const state = getState();
-  pushGlobalCloudState(state).then(ok => {
-    if (onStatusChange) {
-      onStatusChange(ok ? 'synced' : 'error');
-    }
-  });
+
+  // Immediately broadcast to local tabs
+  try {
+    const currentState = getState();
+    broadcastLocalState(currentState);
+  } catch (e) {}
+
+  if (pushDebounceTimer) {
+    clearTimeout(pushDebounceTimer);
+  }
+
+  pushDebounceTimer = setTimeout(() => {
+    const state = getState();
+    pushGlobalCloudState(state).then(ok => {
+      if (onStatusChange) {
+        onStatusChange(ok ? 'synced' : 'error');
+      }
+    });
+  }, 200);
 }
 
 export function subscribeToCloudState(
@@ -205,6 +223,7 @@ export function subscribeToCloudState(
           inventorySectionOverrides: data.inventorySectionOverrides || {},
           workflows: data.workflows || undefined,
           activeWorkflowId: data.activeWorkflowId || undefined,
+          flowcharts: data.flowcharts || undefined,
           lastUpdated: Number(data.lastUpdated) || 0
         });
       }

@@ -66,14 +66,25 @@ export const MiroDiagramCanvas: React.FC<MiroDiagramCanvasProps> = ({
   // Containers
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync when initialData or groupKey changes
+  // External sync from other browsers / cloud
+  useEffect(() => {
+    // Only apply remote changes if not currently dragging or resizing locally
+    if (!draggingNodeId && !resizingNodeId && !connectingFrom) {
+      setData(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(initialData)) return prev;
+        return initialData;
+      });
+    }
+  }, [initialData, draggingNodeId, resizingNodeId, connectingFrom]);
+
+  // When switching groups, reset selection and reset history
   useEffect(() => {
     setData(initialData);
     setHistory([initialData]);
     setHistoryIndex(0);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
-  }, [groupKey, initialData]);
+  }, [groupKey]);
 
   // Commit changes to history & trigger parent onChange
   const commitChange = useCallback((nextData: DiagramData) => {

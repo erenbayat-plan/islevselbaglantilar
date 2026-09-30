@@ -9,14 +9,20 @@ const STORAGE_KEY = 'plan2050_analysis_flowcharts_v2';
 interface AnalysisFlowTabProps {
   activeGroup?: string;
   onSelectGroup?: (group: string) => void;
+  diagramsByGroup?: Record<string, DiagramData>;
+  onUpdateDiagram?: (group: string, diagram: DiagramData) => void;
+  syncStatus?: 'synced' | 'saving' | 'connected';
 }
 
 export const AnalysisFlowTab: React.FC<AnalysisFlowTabProps> = ({
   activeGroup = 'ulasim',
-  onSelectGroup
+  onSelectGroup,
+  diagramsByGroup: externalDiagrams,
+  onUpdateDiagram: externalUpdateDiagram,
+  syncStatus = 'synced'
 }) => {
-  // Store all groups' diagrams in a state dictionary
-  const [diagramsByGroup, setDiagramsByGroup] = useState<Record<string, DiagramData>>(() => {
+  // Local fallback storage in case external isn't provided
+  const [localDiagrams, setLocalDiagrams] = useState<Record<string, DiagramData>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -40,6 +46,8 @@ export const AnalysisFlowTab: React.FC<AnalysisFlowTabProps> = ({
     };
   });
 
+  const diagramsByGroup = externalDiagrams || localDiagrams;
+
   // Local active group selector (if parent passes or user switches here)
   const currentGroup = activeGroup || 'ulasim';
 
@@ -48,19 +56,21 @@ export const AnalysisFlowTab: React.FC<AnalysisFlowTabProps> = ({
 
   // Auto-save changes for current group
   const handleDiagramChange = useCallback((updatedDiagram: DiagramData) => {
-    setDiagramsByGroup(prev => {
-      const next = {
-        ...prev,
-        [currentGroup]: updatedDiagram
-      };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.error('Failed to save flowchart diagrams to localStorage', e);
-      }
-      return next;
-    });
-  }, [currentGroup]);
+    if (externalUpdateDiagram) {
+      externalUpdateDiagram(currentGroup, updatedDiagram);
+    } else {
+      setLocalDiagrams(prev => {
+        const next = {
+          ...prev,
+          [currentGroup]: updatedDiagram
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
+    }
+  }, [currentGroup, externalUpdateDiagram]);
 
   // Group switch handler
   const handleSwitchGroup = (groupKey: string) => {
@@ -121,16 +131,32 @@ export const AnalysisFlowTab: React.FC<AnalysisFlowTabProps> = ({
               </h2>
               <span 
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
                   fontSize: '10px',
                   fontWeight: 600,
-                  padding: '2px 7px',
+                  padding: '2px 8px',
                   borderRadius: '10px',
-                  background: 'rgba(34, 197, 94, 0.2)',
-                  color: '#4ADE80',
-                  border: '1px solid rgba(34, 197, 94, 0.3)'
+                  background: syncStatus === 'saving' 
+                    ? 'rgba(234, 179, 8, 0.2)' 
+                    : 'rgba(34, 197, 94, 0.2)',
+                  color: syncStatus === 'saving' ? '#FACC15' : '#4ADE80',
+                  border: syncStatus === 'saving'
+                    ? '1px solid rgba(234, 179, 8, 0.35)'
+                    : '1px solid rgba(34, 197, 94, 0.3)'
                 }}
               >
-                Otomatik Kaydediliyor
+                <span 
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: syncStatus === 'saving' ? '#FACC15' : '#4ADE80',
+                    boxShadow: syncStatus === 'saving' ? '0 0 6px #FACC15' : '0 0 6px #4ADE80'
+                  }}
+                />
+                {syncStatus === 'saving' ? 'Buluta Kaydediliyor…' : 'Tüm Tarayıcılar Eşzamanlı'}
               </span>
             </div>
             <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94A3B8' }}>
